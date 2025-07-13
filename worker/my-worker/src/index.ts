@@ -12,7 +12,7 @@
  */
 
 import type { Env } from './env';
-import { commandHandlers, type TelegramUpdate } from './telegram';
+import { commandHandlers, handleCallbackQuery, type TelegramUpdate } from './telegram';
 import { authenticator } from 'otplib';
 
 interface Data {
@@ -145,6 +145,8 @@ export default {
                                         if (handler) {
                                                 await handler(update, env);
                                         }
+                                } else if (update.callback_query) {
+                                        await handleCallbackQuery(update, env);
                                 }
                                 return new Response('OK');
                         default:
