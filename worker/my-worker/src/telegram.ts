@@ -352,19 +352,21 @@ export async function menuCallback(update: TelegramUpdate, env: Env): Promise<vo
     await sendMessage(env, chatId, tr('menu_language', lang), { inline_keyboard: buttons });
     return;
   }
-  await sendMessage(env, chatId, 'Menu callback stub');
+  await sendMessage(env, chatId, tr('menu_callback_stub', lang));
 }
 
 export async function buyCallback(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
-  await sendMessage(env, chatId, 'Buy callback stub');
+  const lang = await userLang(env, chatId);
+  await sendMessage(env, chatId, tr('buy_callback_stub', lang));
 }
 
 export async function codeCallback(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
-  await sendMessage(env, chatId, 'Code callback stub');
+  const lang = await userLang(env, chatId);
+  await sendMessage(env, chatId, tr('code_callback_stub', lang));
 }
 
 export async function languageMenuCallback(update: TelegramUpdate, env: Env): Promise<void> {
@@ -393,55 +395,64 @@ export async function languageMenuCallback(update: TelegramUpdate, env: Env): Pr
 export async function adminMenuCallback(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
-  await sendMessage(env, chatId, 'Admin menu callback stub');
+  const lang = await userLang(env, chatId);
+  await sendMessage(env, chatId, tr('admin_menu_callback_stub', lang));
 }
 
 export async function adminCallback(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
-  await sendMessage(env, chatId, 'Admin callback stub');
+  const lang = await userLang(env, chatId);
+  await sendMessage(env, chatId, tr('admin_callback_stub', lang));
 }
 
 export async function editprodCallback(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
-  await sendMessage(env, chatId, 'Edit product callback stub');
+  const lang = await userLang(env, chatId);
+  await sendMessage(env, chatId, tr('edit_product_callback_stub', lang));
 }
 
 export async function editfieldCallback(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
-  await sendMessage(env, chatId, 'Edit field callback stub');
+  const lang = await userLang(env, chatId);
+  await sendMessage(env, chatId, tr('edit_field_callback_stub', lang));
 }
 
 export async function buyerlistCallback(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
-  await sendMessage(env, chatId, 'Buyer list callback stub');
+  const lang = await userLang(env, chatId);
+  await sendMessage(env, chatId, tr('buyer_list_callback_stub', lang));
 }
 
 export async function clearbuyersCallback(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
-  await sendMessage(env, chatId, 'Clear buyers callback stub');
+  const lang = await userLang(env, chatId);
+  await sendMessage(env, chatId, tr('clear_buyers_callback_stub', lang));
 }
 
 export async function resendCallback(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
-  await sendMessage(env, chatId, 'Resend callback stub');
+  const lang = await userLang(env, chatId);
+  await sendMessage(env, chatId, tr('resend_callback_stub', lang));
 }
 
 export async function deleteprodCallback(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
-  await sendMessage(env, chatId, 'Delete product callback stub');
+  const lang = await userLang(env, chatId);
+  await sendMessage(env, chatId, tr('delete_product_callback_stub', lang));
 }
 
 export async function statsCallback(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
-  await sendMessage(env, chatId, 'Stats callback stub');
+  const lang = await userLang(env, chatId);
+  await sendMessage(env, chatId, tr('stats_callback_stub', lang));
 }
 
 export const callbackHandlers: Record<string, CallbackHandler> = {
