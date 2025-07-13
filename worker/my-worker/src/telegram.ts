@@ -325,9 +325,79 @@ export async function buyCallback(update: TelegramUpdate, env: Env): Promise<voi
   await sendMessage(env, chatId, 'Buy callback stub');
 }
 
+export async function codeCallback(update: TelegramUpdate, env: Env): Promise<void> {
+  const chatId = update.callback_query?.message?.chat.id;
+  if (!chatId) return;
+  await sendMessage(env, chatId, 'Code callback stub');
+}
+
+export async function adminMenuCallback(update: TelegramUpdate, env: Env): Promise<void> {
+  const chatId = update.callback_query?.message?.chat.id;
+  if (!chatId) return;
+  await sendMessage(env, chatId, 'Admin menu callback stub');
+}
+
+export async function adminCallback(update: TelegramUpdate, env: Env): Promise<void> {
+  const chatId = update.callback_query?.message?.chat.id;
+  if (!chatId) return;
+  await sendMessage(env, chatId, 'Admin callback stub');
+}
+
+export async function editprodCallback(update: TelegramUpdate, env: Env): Promise<void> {
+  const chatId = update.callback_query?.message?.chat.id;
+  if (!chatId) return;
+  await sendMessage(env, chatId, 'Edit product callback stub');
+}
+
+export async function editfieldCallback(update: TelegramUpdate, env: Env): Promise<void> {
+  const chatId = update.callback_query?.message?.chat.id;
+  if (!chatId) return;
+  await sendMessage(env, chatId, 'Edit field callback stub');
+}
+
+export async function buyerlistCallback(update: TelegramUpdate, env: Env): Promise<void> {
+  const chatId = update.callback_query?.message?.chat.id;
+  if (!chatId) return;
+  await sendMessage(env, chatId, 'Buyer list callback stub');
+}
+
+export async function clearbuyersCallback(update: TelegramUpdate, env: Env): Promise<void> {
+  const chatId = update.callback_query?.message?.chat.id;
+  if (!chatId) return;
+  await sendMessage(env, chatId, 'Clear buyers callback stub');
+}
+
+export async function resendCallback(update: TelegramUpdate, env: Env): Promise<void> {
+  const chatId = update.callback_query?.message?.chat.id;
+  if (!chatId) return;
+  await sendMessage(env, chatId, 'Resend callback stub');
+}
+
+export async function deleteprodCallback(update: TelegramUpdate, env: Env): Promise<void> {
+  const chatId = update.callback_query?.message?.chat.id;
+  if (!chatId) return;
+  await sendMessage(env, chatId, 'Delete product callback stub');
+}
+
+export async function statsCallback(update: TelegramUpdate, env: Env): Promise<void> {
+  const chatId = update.callback_query?.message?.chat.id;
+  if (!chatId) return;
+  await sendMessage(env, chatId, 'Stats callback stub');
+}
+
 export const callbackHandlers: Record<string, CallbackHandler> = {
   'menu': menuCallback,
   'buy': buyCallback,
+  'code': codeCallback,
+  'adminmenu': adminMenuCallback,
+  'admin': adminCallback,
+  'editprod': editprodCallback,
+  'editfield': editfieldCallback,
+  'buyerlist': buyerlistCallback,
+  'adminclearbuyers': clearbuyersCallback,
+  'adminresend': resendCallback,
+  'delprod': deleteprodCallback,
+  'adminstats': statsCallback,
 };
 
 export async function handleCallbackQuery(update: TelegramUpdate, env: Env): Promise<void> {
