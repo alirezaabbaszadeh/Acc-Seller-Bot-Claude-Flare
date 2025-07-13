@@ -18,7 +18,7 @@ from telegram.ext import (
 )
 import pyotp
 from botlib.translations import tr
-from botlib.storage import WorkerStorage
+from botlib.storage import WorkerStorage, JSONStorage
 
 # Languages that can be used with /setlang
 SUPPORTED_LANGS = {"en", "fa"}
@@ -47,12 +47,10 @@ if not ADMIN_PHONE:
     raise SystemExit("ADMIN_PHONE environment variable not set")
 
 WORKER_URL = os.environ.get("WORKER_URL")
-if not WORKER_URL:
-    logger.error("WORKER_URL environment variable not set")
-    raise SystemExit("WORKER_URL environment variable not set")
-
-
-storage = WorkerStorage(WORKER_URL)
+if WORKER_URL:
+    storage = WorkerStorage(WORKER_URL)
+else:
+    storage = JSONStorage(DATA_FILE, os.environ["FERNET_KEY"].encode())
 data = asyncio.run(storage.load())
 data.setdefault('languages', {})
 
