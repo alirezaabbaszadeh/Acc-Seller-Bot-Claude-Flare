@@ -97,7 +97,7 @@ async function decryptData(data: Data, key: string): Promise<Data> {
 async function loadData(env: Env): Promise<Data> {
     const stored = await env.DATA.get('state', 'json');
     if (stored) {
-        return decryptData(stored as Data, env.FERNET_KEY);
+        return await decryptData(stored as Data, env.FERNET_KEY);
     }
     return { products: {}, pending: [], languages: {} };
 }
