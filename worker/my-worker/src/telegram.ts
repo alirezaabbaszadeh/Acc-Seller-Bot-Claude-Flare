@@ -1,6 +1,107 @@
 import type { Env } from './env';
 import { tr, type Lang } from './translations';
 
+interface Data {
+  products: Record<string, Record<string, any>>;
+  pending: { user_id: number; product_id: string }[];
+  languages: Record<string, string>;
+}
+
+function b64ToBytes(b64: string): Uint8Array {
+  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+}
+
+function bytesToB64(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes));
+}
+
+async function encryptField(value: string, keyB64: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    b64ToBytes(keyB64),
+    'AES-GCM',
+    false,
+    ['encrypt'],
+  );
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const cipher = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    new TextEncoder().encode(value),
+  );
+  const out = new Uint8Array(iv.length + cipher.byteLength);
+  out.set(iv, 0);
+  out.set(new Uint8Array(cipher), iv.length);
+  return bytesToB64(out);
+}
+
+async function decryptField(value: string, keyB64: string): Promise<string> {
+  const data = b64ToBytes(value);
+  const iv = data.slice(0, 12);
+  const cipher = data.slice(12);
+  const key = await crypto.subtle.importKey(
+    'raw',
+    b64ToBytes(keyB64),
+    'AES-GCM',
+    false,
+    ['decrypt'],
+  );
+  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, cipher);
+  return new TextDecoder().decode(plain);
+}
+
+async function encryptData(data: Data, key: string): Promise<Data> {
+  const result: Data = structuredClone(data);
+  for (const product of Object.values(result.products || {})) {
+    for (const field of ['username', 'password', 'secret'] as const) {
+      const value = product[field];
+      if (typeof value === 'string') {
+        product[field] = await encryptField(value, key);
+      }
+    }
+  }
+  return result;
+}
+
+async function decryptData(data: Data, key: string): Promise<Data> {
+  const result: Data = structuredClone(data);
+  for (const product of Object.values(result.products || {})) {
+    for (const field of ['username', 'password', 'secret'] as const) {
+      const value = product[field];
+      if (typeof value === 'string') {
+        try {
+          product[field] = await decryptField(value, key);
+        } catch {
+          product[field] = '';
+        }
+      }
+    }
+  }
+  return result;
+}
+
+async function loadData(env: Env): Promise<Data> {
+  const stored = await env.DATA.get('state', 'json');
+  if (stored) {
+    return decryptData(stored as Data, env.FERNET_KEY);
+  }
+  return { products: {}, pending: [], languages: {} };
+}
+
+async function saveData(env: Env, data: Data): Promise<void> {
+  const enc = await encryptData(data, env.FERNET_KEY);
+  await env.DATA.put('state', JSON.stringify(enc));
+}
+
+async function userLang(env: Env, userId: number): Promise<Lang> {
+  const data = await loadData(env);
+  return (data.languages[userId.toString()] as Lang) ?? 'en';
+}
+
+function isAdmin(env: Env, userId: number): boolean {
+  return String(userId) === env.ADMIN_ID;
+}
+
 export interface InlineKeyboardButton {
   text: string;
   callback_data: string;
@@ -91,25 +192,115 @@ export async function handleStart(update: TelegramUpdate, env: Env): Promise<voi
 export async function handleAddProduct(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.message?.chat.id;
   if (!chatId) return;
-  await sendMessage(env, chatId, 'Add product command stub');
+  const lang = await userLang(env, chatId);
+  if (!isAdmin(env, chatId)) {
+    await sendMessage(env, chatId, tr('unauthorized', lang));
+    return;
+  }
+  const text = update.message?.text || '';
+  const args = text.split(/\s+/).slice(1);
+  if (args.length === 0) {
+    await sendMessage(env, chatId, tr('ask_product_id', lang));
+    return;
+  }
+  if (args.length < 5) {
+    await sendMessage(env, chatId, tr('addproduct_usage', lang));
+    return;
+  }
+  const [pid, price, username, password, secret, ...nameParts] = args;
+  const name = nameParts.join(' ');
+  const data = await loadData(env);
+  if (pid in data.products) {
+    await sendMessage(env, chatId, tr('product_exists', lang));
+    return;
+  }
+  data.products[pid] = { price, username, password, secret, buyers: [] };
+  if (name) {
+    data.products[pid].name = name;
+  }
+  await saveData(env, data);
+  await sendMessage(env, chatId, tr('product_added', lang));
 }
 
 export async function handlePending(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.message?.chat.id;
   if (!chatId) return;
-  await sendMessage(env, chatId, 'Pending command stub');
+  const lang = await userLang(env, chatId);
+  if (!isAdmin(env, chatId)) {
+    await sendMessage(env, chatId, tr('unauthorized', lang));
+    return;
+  }
+  const data = await loadData(env);
+  if (!data.pending.length) {
+    await sendMessage(env, chatId, tr('no_pending', lang));
+    return;
+  }
+  const lines = data.pending.map((p) =>
+    tr('pending_entry', lang)
+      .replace('{user_id}', String(p.user_id))
+      .replace('{product_id}', p.product_id),
+  );
+  await sendMessage(env, chatId, lines.join('\n'));
 }
 
 export async function handleStats(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.message?.chat.id;
   if (!chatId) return;
-  await sendMessage(env, chatId, 'Stats command stub');
+  const lang = await userLang(env, chatId);
+  if (!isAdmin(env, chatId)) {
+    await sendMessage(env, chatId, tr('unauthorized', lang));
+    return;
+  }
+  const args = (update.message?.text || '').split(/\s+/).slice(1);
+  const pid = args[0];
+  if (!pid) {
+    await sendMessage(env, chatId, tr('stats_usage', lang));
+    return;
+  }
+  const data = await loadData(env);
+  const product = data.products[pid];
+  if (!product) {
+    await sendMessage(env, chatId, tr('product_not_found', lang));
+    return;
+  }
+  const buyers = product.buyers || [];
+  const text = [
+    tr('price_line', lang).replace('{price}', String(product.price)),
+    tr('total_buyers_line', lang).replace('{count}', String(buyers.length)),
+  ].join('\n');
+  await sendMessage(env, chatId, text);
 }
 
 export async function handleBuyers(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.message?.chat.id;
   if (!chatId) return;
-  await sendMessage(env, chatId, 'Buyers command stub');
+  const lang = await userLang(env, chatId);
+  if (!isAdmin(env, chatId)) {
+    await sendMessage(env, chatId, tr('unauthorized', lang));
+    return;
+  }
+  const args = (update.message?.text || '').split(/\s+/).slice(1);
+  const pid = args[0];
+  if (!pid) {
+    await sendMessage(env, chatId, tr('buyers_usage', lang));
+    return;
+  }
+  const data = await loadData(env);
+  const product = data.products[pid];
+  if (!product) {
+    await sendMessage(env, chatId, tr('product_not_found', lang));
+    return;
+  }
+  const buyers = product.buyers || [];
+  if (buyers.length) {
+    await sendMessage(
+      env,
+      chatId,
+      tr('buyers_list', lang).replace('{list}', buyers.join(', ')),
+    );
+  } else {
+    await sendMessage(env, chatId, tr('no_buyers', lang));
+  }
 }
 
 export const commandHandlers: Record<string, CommandHandler> = {
