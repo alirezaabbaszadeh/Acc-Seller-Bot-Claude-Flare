@@ -1,0 +1,28 @@
+__pycache__/
+.pytest_cache/
+data.json
+# Byte-compiled / optimized / DLL files
+*.py[cod]
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+.eggs/
+lib/
+lib64/
+parts/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+# Cython debug symbols
+cython_debug/
