@@ -1,6 +1,7 @@
 import { env, createExecutionContext, waitOnExecutionContext } from 'cloudflare:test';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import worker from '../src';
+import { tr } from '../src/translations';
 
 env.FERNET_KEY = 'MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=';
 env.ADMIN_ID = '1';
@@ -75,7 +76,7 @@ describe('POST /telegram', () => {
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const body = JSON.parse((mockFetch.mock.calls[0][1] as RequestInit).body as string);
-    expect(body.text).toBe('Menu callback stub');
+    expect(body.text).toBe(tr('menu_callback_stub'));
 
     const dataReq = new Request('http://example.com/data');
     const ctx2 = createExecutionContext();
