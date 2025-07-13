@@ -1,0 +1,9 @@
+name = "my-worker"
+account_id = "1234567890abcdef1234567890abcdef"
+main = "src/index.ts"
+compatibility_date = "2024-11-11"
+
+route = "https://example.com/*"
+
+[build]
+command = "npm run build"
