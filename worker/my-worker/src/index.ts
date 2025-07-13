@@ -123,10 +123,6 @@ export default {
                                         return new Response('OK');
                                 }
                                 return new Response('Method Not Allowed', { status: 405 });
-                        case '/message':
-                                return new Response('Hello, World!');
-                        case '/random':
-                                return new Response(crypto.randomUUID());
                         case '/totp':
                                 const secret = url.searchParams.get('secret');
                                 if (!secret) {
