@@ -70,3 +70,42 @@ class JSONStorage:
                     tmp.unlink(missing_ok=True)
                 except Exception:  # pragma: no cover - best effort cleanup
                     pass
+
+
+class WorkerStorage:
+    """Storage backend that fetches and stores data via a Cloudflare Worker."""
+
+    def __init__(self, base_url: str):
+        self.base_url = base_url.rstrip("/")
+
+    async def load(self) -> Dict[str, Any]:
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, self._sync_load)
+
+    def _sync_load(self) -> Dict[str, Any]:
+        from urllib import request
+        try:
+            with request.urlopen(f"{self.base_url}/data") as resp:
+                return json.load(resp)
+        except Exception as exc:  # pragma: no cover - network issues
+            logger.error("Failed to load from worker: %s", exc)
+            return DEFAULT_DATA.copy()
+
+    async def save(self, data: Dict[str, Any]) -> None:
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, self._sync_save, data)
+
+    def _sync_save(self, data: Dict[str, Any]) -> None:
+        from urllib import request
+        payload = json.dumps(data).encode()
+        req = request.Request(
+            f"{self.base_url}/data",
+            data=payload,
+            method="POST",
+            headers={"Content-Type": "application/json"},
+        )
+        try:
+            with request.urlopen(req):
+                pass
+        except Exception as exc:  # pragma: no cover - network issues
+            logger.error("Failed to save to worker: %s", exc)
