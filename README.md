@@ -184,13 +184,21 @@ flake8
 pytest
 ```
 
+When working on the Cloudflare Worker, use Node.js 20 or later so `wrangler`
+can start the development server without errors.
+
 The unit tests require `python-telegram-bot`. Tests depending on it are skipped
 automatically when the package is missing so the suite can run without the
 dependency.
 ## Worker Deployment
 
 This project includes a Cloudflare Worker located in `worker/my-worker` that can
-serve the bot without running a dedicated server. To deploy the Worker:
+serve the bot without running a dedicated server.
+
+**Prerequisite:** ensure you have Node.js version 20 or newer installed. Older
+versions may fail to start the Worker.
+
+To deploy the Worker:
 
 1. Install [Wrangler](https://developers.cloudflare.com/workers/wrangler/) and
    ensure you are logged in (`wrangler login`).
