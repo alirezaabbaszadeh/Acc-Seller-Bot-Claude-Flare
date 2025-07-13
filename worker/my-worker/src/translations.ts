@@ -415,54 +415,6 @@ export const TRANSLATIONS = {
     "en": "/stats <product_id> - show product statistics",
     "fa": "/stats <product_id> - نمایش آمار محصول"
   },
-  "menu_callback_stub": {
-    "en": "Menu callback stub",
-    "fa": "پاسخ منو (آزمایشی)"
-  },
-  "buy_callback_stub": {
-    "en": "Buy callback stub",
-    "fa": "پاسخ خرید (آزمایشی)"
-  },
-  "code_callback_stub": {
-    "en": "Code callback stub",
-    "fa": "پاسخ کد (آزمایشی)"
-  },
-  "admin_menu_callback_stub": {
-    "en": "Admin menu callback stub",
-    "fa": "پاسخ منوی مدیر (آزمایشی)"
-  },
-  "admin_callback_stub": {
-    "en": "Admin callback stub",
-    "fa": "پاسخ مدیر (آزمایشی)"
-  },
-  "edit_product_callback_stub": {
-    "en": "Edit product callback stub",
-    "fa": "پاسخ ویرایش محصول (آزمایشی)"
-  },
-  "edit_field_callback_stub": {
-    "en": "Edit field callback stub",
-    "fa": "پاسخ ویرایش فیلد (آزمایشی)"
-  },
-  "buyer_list_callback_stub": {
-    "en": "Buyer list callback stub",
-    "fa": "پاسخ لیست خریداران (آزمایشی)"
-  },
-  "clear_buyers_callback_stub": {
-    "en": "Clear buyers callback stub",
-    "fa": "پاسخ پاک‌سازی خریداران (آزمایشی)"
-  },
-  "resend_callback_stub": {
-    "en": "Resend callback stub",
-    "fa": "پاسخ ارسال مجدد (آزمایشی)"
-  },
-  "delete_product_callback_stub": {
-    "en": "Delete product callback stub",
-    "fa": "پاسخ حذف محصول (آزمایشی)"
-  },
-  "stats_callback_stub": {
-    "en": "Stats callback stub",
-    "fa": "پاسخ آمار (آزمایشی)"
-  },
   "menu_language": {
     "en": "Language",
     "fa": "زبان"
