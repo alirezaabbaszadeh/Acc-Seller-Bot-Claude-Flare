@@ -11,12 +11,8 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
-interface Env {
-    ADMIN_ID: string;
-    ADMIN_PHONE: string;
-    FERNET_KEY: string;
-    DATA: KVNamespace;
-}
+import type { Env } from './env';
+import { commandHandlers, type TelegramUpdate } from './telegram';
 
 interface Data {
     products: Record<string, Record<string, unknown>>;
@@ -127,11 +123,25 @@ export default {
                                 }
                                 return new Response('Method Not Allowed', { status: 405 });
                         case '/message':
-                                return new Response(`Hello, ${env.ADMIN_ID}!`);
+                                return new Response('Hello, World!');
                         case '/random':
                                 return new Response(crypto.randomUUID());
+                        case '/telegram':
+                                if (request.method !== 'POST') {
+                                        return new Response('Method Not Allowed', { status: 405 });
+                                }
+                                const update: TelegramUpdate = await request.json();
+                                const text = update.message?.text;
+                                if (text) {
+                                        const command = text.split(/\s+/)[0] as keyof typeof commandHandlers;
+                                        const handler = commandHandlers[command];
+                                        if (handler) {
+                                                await handler(update, env);
+                                        }
+                                }
+                                return new Response('OK');
                         default:
-				return new Response('Not Found', { status: 404 });
-		}
-	},
+                                return new Response('Not Found', { status: 404 });
+                }
+        },
 } satisfies ExportedHandler<Env>;
