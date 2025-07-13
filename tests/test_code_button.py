@@ -89,7 +89,9 @@ def test_code_button_flow(monkeypatch):
     # Simulate pressing the code button
     cb_update = DummyCallbackUpdate(2, "code:p1")
     cb_context = DummyContext()
-    monkeypatch.setattr(pyotp.TOTP, "now", lambda self: "123456")
+    async def fake_code(secret):
+        return "123456"
+    monkeypatch.setattr(sys.modules['bot'], "get_current_code", fake_code)
     asyncio.run(code_callback(cb_update, cb_context))
     reply_text, _ = cb_update.replies[0]
     assert reply_text == tr("code_msg", "en").format(code="123456")

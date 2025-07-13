@@ -16,7 +16,6 @@ from telegram.ext import (
     CallbackQueryHandler,
     ConversationHandler,
 )
-import pyotp
 from botlib.translations import tr
 from botlib.storage import WorkerStorage, JSONStorage
 
@@ -53,6 +52,13 @@ else:
     storage = JSONStorage(DATA_FILE, os.environ["FERNET_KEY"].encode())
 data = asyncio.run(storage.load())
 data.setdefault('languages', {})
+
+
+async def get_current_code(secret: str) -> str:
+    if isinstance(storage, WorkerStorage):
+        return await storage.get_code(secret)
+    import pyotp
+    return pyotp.TOTP(secret).now()
 
 
 def user_lang(user_id: int) -> str:
@@ -257,8 +263,8 @@ async def code_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not secret:
         await query.message.reply_text(tr('no_secret', lang))
         return
-    totp = pyotp.TOTP(secret)
-    await query.message.reply_text(tr('code_msg', lang).format(code=totp.now()))
+    code = await get_current_code(secret)
+    await query.message.reply_text(tr('code_msg', lang).format(code=code))
 
 
 @log_command
@@ -861,8 +867,8 @@ async def code(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not secret:
         await update.message.reply_text(tr('no_secret', lang))
         return
-    totp = pyotp.TOTP(secret)
-    await update.message.reply_text(tr('code_msg', lang).format(code=totp.now()))
+    code = await get_current_code(secret)
+    await update.message.reply_text(tr('code_msg', lang).format(code=code))
 
 
 @log_command

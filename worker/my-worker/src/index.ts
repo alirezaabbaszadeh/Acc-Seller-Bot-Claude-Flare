@@ -13,6 +13,7 @@
 
 import type { Env } from './env';
 import { commandHandlers, type TelegramUpdate } from './telegram';
+import { authenticator } from 'otplib';
 
 interface Data {
     products: Record<string, Record<string, unknown>>;
@@ -126,6 +127,12 @@ export default {
                                 return new Response('Hello, World!');
                         case '/random':
                                 return new Response(crypto.randomUUID());
+                        case '/totp':
+                                const secret = url.searchParams.get('secret');
+                                if (!secret) {
+                                        return new Response('Bad Request', { status: 400 });
+                                }
+                                return new Response(authenticator.generate(secret));
                         case '/telegram':
                                 if (request.method !== 'POST') {
                                         return new Response('Method Not Allowed', { status: 405 });
