@@ -109,3 +109,17 @@ class WorkerStorage:
                 pass
         except Exception as exc:  # pragma: no cover - network issues
             logger.error("Failed to save to worker: %s", exc)
+
+    async def get_code(self, secret: str) -> str:
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, self._sync_get_code, secret)
+
+    def _sync_get_code(self, secret: str) -> str:
+        from urllib import request, parse
+        url = f"{self.base_url}/totp?secret={parse.quote(secret)}"
+        try:
+            with request.urlopen(url) as resp:
+                return resp.read().decode().strip()
+        except Exception as exc:  # pragma: no cover - network issues
+            logger.error("Failed to fetch TOTP code: %s", exc)
+            return ""
