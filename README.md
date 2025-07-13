@@ -10,6 +10,7 @@ A Telegram bot for selling products with manual payment approval and two-factor 
 - [Menu Navigation](#menu-navigation)
 - [Docker](#docker)
 - [Development](#development)
+- [Worker Deployment](#worker-deployment)
 
 ## Features
 - Admin can add products with price, credentials, TOTP secret, and optional name.
@@ -186,3 +187,28 @@ pytest
 The unit tests require `python-telegram-bot`. Tests depending on it are skipped
 automatically when the package is missing so the suite can run without the
 dependency.
+## Worker Deployment
+
+This project includes a Cloudflare Worker located in `worker/my-worker` that can
+serve the bot without running a dedicated server. To deploy the Worker:
+
+1. Install [Wrangler](https://developers.cloudflare.com/workers/wrangler/) and
+   ensure you are logged in (`wrangler login`).
+2. Edit `worker/my-worker/wrangler.toml` and replace the example `account_id`,
+   `route`, and KV namespace IDs with values from your Cloudflare account.
+3. Create the KV namespace defined in the `wrangler.toml` file and note its IDs.
+4. From the `worker/my-worker` directory, set the required secrets:
+   ```bash
+   wrangler secret put BOT_TOKEN
+   wrangler secret put ADMIN_ID
+   wrangler secret put ADMIN_PHONE
+   wrangler secret put FERNET_KEY
+   ```
+5. Deploy the Worker by running `wrangler deploy` (or `npm run deploy`).
+6. After deployment, set the Telegram webhook to point to the Worker route:
+   ```bash
+   curl "https://api.telegram.org/bot<YOUR_TOKEN>/setWebhook?url=https://<YOUR_WORKER_DOMAIN>/telegram"
+   ```
+
+Once the webhook is configured, Telegram will deliver updates to the `/telegram`
+endpoint of your Worker.
