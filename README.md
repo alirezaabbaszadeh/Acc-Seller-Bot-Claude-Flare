@@ -212,3 +212,31 @@ serve the bot without running a dedicated server. To deploy the Worker:
 
 Once the webhook is configured, Telegram will deliver updates to the `/telegram`
 endpoint of your Worker.
+
+## Switching from `bot.py` to the Worker
+
+If you have been running the bot locally with `bot.py` and want to move to the
+Cloudflare Worker, deploy the Worker as described above and then copy your
+existing state:
+
+1. Upload your local `data.json` to the KV namespace using the Worker's `/data`
+   endpoint:
+
+   ```bash
+   curl -X POST -H 'Content-Type: application/json' \
+        --data @data.json https://<YOUR_WORKER_DOMAIN>/data
+   ```
+
+2. Set the same secrets that `bot.py` used so the Worker can decrypt and use the
+   data:
+
+   ```bash
+   wrangler secret put BOT_TOKEN
+   wrangler secret put ADMIN_ID
+   wrangler secret put ADMIN_PHONE
+   wrangler secret put FERNET_KEY
+   ```
+
+3. Finally, point your Telegram webhook to the Worker route (as shown above).
+   After this, you no longer need to run `bot.py`; the Worker will handle all
+   updates.
