@@ -98,6 +98,8 @@ async function userLang(env: Env, userId: number): Promise<Lang> {
   return (data.languages[userId.toString()] as Lang) ?? 'en';
 }
 
+const SUPPORTED_LANGS = new Set<Lang>(['en', 'fa']);
+
 function isAdmin(env: Env, userId: number): boolean {
   return String(userId) === env.ADMIN_ID;
 }
@@ -186,7 +188,8 @@ export function buildAdminMenu(lang: Lang): InlineKeyboardMarkup {
 export async function handleStart(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.message?.chat.id;
   if (!chatId) return;
-  await sendMessage(env, chatId, tr('welcome', 'en'));
+  const lang = await userLang(env, chatId);
+  await sendMessage(env, chatId, tr('welcome', lang));
 }
 
 export async function handleAddProduct(update: TelegramUpdate, env: Env): Promise<void> {
@@ -303,12 +306,34 @@ export async function handleBuyers(update: TelegramUpdate, env: Env): Promise<vo
   }
 }
 
+export async function handleSetLang(update: TelegramUpdate, env: Env): Promise<void> {
+  const chatId = update.message?.chat.id;
+  if (!chatId) return;
+  const dataText = update.message?.text || '';
+  const args = dataText.split(/\s+/).slice(1);
+  const currentLang = await userLang(env, chatId);
+  const code = args[0]?.toLowerCase();
+  if (!code) {
+    await sendMessage(env, chatId, tr('setlang_usage', currentLang));
+    return;
+  }
+  if (!SUPPORTED_LANGS.has(code as Lang)) {
+    await sendMessage(env, chatId, tr('unsupported_language', currentLang));
+    return;
+  }
+  const data = await loadData(env);
+  data.languages[chatId.toString()] = code as Lang;
+  await saveData(env, data);
+  await sendMessage(env, chatId, tr('language_set', code as Lang));
+}
+
 export const commandHandlers: Record<string, CommandHandler> = {
   '/start': handleStart,
   '/addproduct': handleAddProduct,
   '/pending': handlePending,
   '/stats': handleStats,
   '/buyers': handleBuyers,
+  '/setlang': handleSetLang,
 };
 
 // --- Callback handlers ---
@@ -316,6 +341,17 @@ export const commandHandlers: Record<string, CommandHandler> = {
 export async function menuCallback(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
+  const lang = await userLang(env, chatId);
+  const action = update.callback_query?.data.split(':')[1];
+  if (action === 'language') {
+    const buttons: InlineKeyboardButton[][] = [
+      [{ text: tr('lang_en', lang), callback_data: 'language:en' }],
+      [{ text: tr('lang_fa', lang), callback_data: 'language:fa' }],
+      [{ text: tr('menu_back', lang), callback_data: 'menu:main' }],
+    ];
+    await sendMessage(env, chatId, tr('menu_language', lang), { inline_keyboard: buttons });
+    return;
+  }
   await sendMessage(env, chatId, 'Menu callback stub');
 }
 
@@ -329,6 +365,29 @@ export async function codeCallback(update: TelegramUpdate, env: Env): Promise<vo
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
   await sendMessage(env, chatId, 'Code callback stub');
+}
+
+export async function languageMenuCallback(update: TelegramUpdate, env: Env): Promise<void> {
+  const chatId = update.callback_query?.message?.chat.id;
+  if (!chatId) return;
+  const dataStr = update.callback_query?.data || '';
+  const parts = dataStr.split(':');
+  const lang = await userLang(env, chatId);
+  if (parts.length < 2) return;
+  const langCode = parts[1] as Lang;
+  if (!SUPPORTED_LANGS.has(langCode)) {
+    await sendMessage(env, chatId, tr('unsupported_language', lang));
+    return;
+  }
+  const data = await loadData(env);
+  data.languages[chatId.toString()] = langCode;
+  await saveData(env, data);
+  await sendMessage(
+    env,
+    chatId,
+    tr('language_set', langCode),
+    buildMainMenu(langCode, isAdmin(env, chatId)),
+  );
 }
 
 export async function adminMenuCallback(update: TelegramUpdate, env: Env): Promise<void> {
@@ -389,6 +448,7 @@ export const callbackHandlers: Record<string, CallbackHandler> = {
   'menu': menuCallback,
   'buy': buyCallback,
   'code': codeCallback,
+  'language': languageMenuCallback,
   'adminmenu': adminMenuCallback,
   'admin': adminCallback,
   'editprod': editprodCallback,
