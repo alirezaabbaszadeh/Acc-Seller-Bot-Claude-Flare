@@ -22,7 +22,7 @@ describe('POST /telegram', () => {
     for (const stmt of stmts) {
       await env.DB.exec(stmt);
     }
-    await env.DATA.delete('state');
+    await env.DB.exec('DELETE FROM products; DELETE FROM pending; DELETE FROM languages');
   });
 
   afterEach(() => {
@@ -84,7 +84,7 @@ describe('POST /telegram', () => {
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const body = JSON.parse((mockFetch.mock.calls[0][1] as RequestInit).body as string);
-    expect(body.text).toBe(tr('menu_callback_stub'));
+    expect(body.text).toBe(tr('welcome'));
 
     const dataReq = new Request('http://example.com/data');
     const ctx2 = createExecutionContext();

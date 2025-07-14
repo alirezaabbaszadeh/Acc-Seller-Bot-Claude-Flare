@@ -1,5 +1,5 @@
 import { env, createExecutionContext, waitOnExecutionContext } from 'cloudflare:test';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import worker from '../src';
 
 // Provide a fixed key for crypto operations
@@ -14,6 +14,18 @@ const sampleData = {
 };
 
 describe('data encryption', () => {
+  beforeEach(async () => {
+    const stmts = [
+      'CREATE TABLE IF NOT EXISTS products (id TEXT PRIMARY KEY, price TEXT NOT NULL, username TEXT NOT NULL, password TEXT NOT NULL, secret TEXT NOT NULL, name TEXT, buyers TEXT NOT NULL DEFAULT "[]")',
+      'CREATE TABLE IF NOT EXISTS pending (user_id INTEGER NOT NULL, product_id TEXT NOT NULL, PRIMARY KEY (user_id, product_id))',
+      'CREATE TABLE IF NOT EXISTS languages (user_id INTEGER PRIMARY KEY, lang TEXT NOT NULL)'
+    ];
+    for (const stmt of stmts) {
+      await env.DB.exec(stmt);
+    }
+    await env.DB.exec('DELETE FROM products; DELETE FROM pending; DELETE FROM languages');
+  });
+
   it('encrypts and decrypts product fields', async () => {
     const post = new Request('http://example.com/data', {
       method: 'POST',
@@ -24,11 +36,11 @@ describe('data encryption', () => {
     await worker.fetch(post, env, ctx);
     await waitOnExecutionContext(ctx);
 
-    const stored = await env.DATA.get('state', 'json');
-    const storedProduct = stored.products.p1;
-    expect(storedProduct.username).not.toBe('user');
-    expect(storedProduct.password).not.toBe('pass');
-    expect(storedProduct.secret).not.toBe('sec');
+    const row = await env.DB.prepare('SELECT username, password, secret FROM products WHERE id=?1').bind('p1').first<any>();
+    if (!row) throw new Error('row not found');
+    expect(row.username).not.toBe('user');
+    expect(row.password).not.toBe('pass');
+    expect(row.secret).not.toBe('sec');
 
     const getReq = new Request('http://example.com/data');
     const ctx2 = createExecutionContext();
