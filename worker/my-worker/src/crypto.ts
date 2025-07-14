@@ -2,6 +2,7 @@ export interface Data {
   products: Record<string, Record<string, any>>;
   pending: any[];
   pending_add: any[];
+  pending_edit: any[];
   languages: Record<string, string>;
 }
 
