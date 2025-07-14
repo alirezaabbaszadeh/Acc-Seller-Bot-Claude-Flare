@@ -4,4 +4,5 @@ export interface Env {
   ADMIN_PHONE: string;
   FERNET_KEY: string;
   DATA: KVNamespace;
+  DB: D1Database;
 }
