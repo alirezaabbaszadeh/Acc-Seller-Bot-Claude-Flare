@@ -190,6 +190,14 @@ can start the development server without errors.
 The unit tests require `python-telegram-bot`. Tests depending on it are skipped
 automatically when the package is missing so the suite can run without the
 dependency.
+The Worker tests rely on a local D1 database. Before executing the test suite
+you must apply the migrations with:
+
+```bash
+wrangler d1 migrations apply
+```
+
+The migration files reside in `worker/my-worker/migrations/`.
 ## Worker Deployment
 
 This project includes a Cloudflare Worker located in `worker/my-worker` that can
