@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS pending_add (
+  user_id INTEGER PRIMARY KEY,
+  step TEXT NOT NULL,
+  data TEXT NOT NULL DEFAULT '{}'
+);

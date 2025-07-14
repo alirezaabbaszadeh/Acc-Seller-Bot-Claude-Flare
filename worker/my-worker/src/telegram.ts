@@ -4,7 +4,7 @@ import { type Data, encryptField, decryptField } from './crypto';
 import { authenticator } from 'otplib';
 
 async function loadData(env: Env): Promise<Data> {
-  const data: Data = { products: {}, pending: [], languages: {} };
+  const data: Data = { products: {}, pending: [], pending_add: [], languages: {} };
 
   const prodRes = await env.DB.prepare('SELECT * FROM products').all();
   for (const row of prodRes.results as any[]) {
@@ -27,6 +27,15 @@ async function loadData(env: Env): Promise<Data> {
     product_id: r.product_id,
   }));
 
+  const addRes = await env.DB.prepare(
+    'SELECT user_id, step, data FROM pending_add'
+  ).all();
+  data.pending_add = (addRes.results as any[]).map((r) => ({
+    user_id: r.user_id,
+    step: r.step,
+    data: r.data ? JSON.parse(r.data) : {}
+  }));
+
   const langRes = await env.DB.prepare(
     'SELECT user_id, lang FROM languages'
   ).all();
@@ -42,6 +51,7 @@ async function saveData(env: Env, data: Data): Promise<void> {
     env.DB.prepare('DELETE FROM products'),
     env.DB.prepare('DELETE FROM pending'),
     env.DB.prepare('DELETE FROM languages'),
+    env.DB.prepare('DELETE FROM pending_add'),
   ];
 
   for (const [id, product] of Object.entries(data.products)) {
@@ -62,6 +72,14 @@ async function saveData(env: Env, data: Data): Promise<void> {
       env.DB.prepare(
         'INSERT INTO pending (user_id, product_id) VALUES (?1, ?2)'
       ).bind(pending.user_id, pending.product_id)
+    );
+  }
+
+  for (const add of data.pending_add) {
+    statements.push(
+      env.DB.prepare(
+        'INSERT INTO pending_add (user_id, step, data) VALUES (?1, ?2, ?3)'
+      ).bind(add.user_id, add.step, JSON.stringify(add.data))
     );
   }
 
@@ -259,6 +277,74 @@ export async function handleHelp(update: TelegramUpdate, env: Env): Promise<void
   await sendMessage(env, chatId, text);
 }
 
+async function startAddFlow(env: Env, chatId: number, lang: Lang) {
+  await env.DB.prepare(
+    'INSERT OR REPLACE INTO pending_add (user_id, step, data) VALUES (?1, ?2, ?3)'
+  ).bind(chatId, 'id', '{}').run();
+  await sendMessage(env, chatId, tr('ask_product_id', lang));
+}
+
+async function continueAddFlow(update: TelegramUpdate, env: Env): Promise<void> {
+  const chatId = update.message?.chat.id;
+  if (!chatId) return;
+  const row = await env.DB.prepare('SELECT step, data FROM pending_add WHERE user_id=?1').bind(chatId).first<any>();
+  if (!row) return;
+  const lang = await userLang(env, chatId);
+  const text = update.message?.text || '';
+  const data = row.data ? JSON.parse(row.data) : {};
+  let nextStep = '';
+  switch (row.step) {
+    case 'id':
+      data.pid = text;
+      nextStep = 'price';
+      await sendMessage(env, chatId, tr('ask_product_price', lang));
+      break;
+    case 'price':
+      data.price = text;
+      nextStep = 'username';
+      await sendMessage(env, chatId, tr('ask_product_username', lang));
+      break;
+    case 'username':
+      data.username = text;
+      nextStep = 'password';
+      await sendMessage(env, chatId, tr('ask_product_password', lang));
+      break;
+    case 'password':
+      data.password = text;
+      nextStep = 'secret';
+      await sendMessage(env, chatId, tr('ask_product_secret', lang));
+      break;
+    case 'secret':
+      data.secret = text;
+      nextStep = 'name';
+      await sendMessage(env, chatId, tr('ask_product_name', lang));
+      break;
+    case 'name':
+      data.name = text;
+      const all = await loadData(env);
+      if (data.pid in all.products) {
+        await sendMessage(env, chatId, tr('product_exists', lang));
+      } else {
+        all.products[data.pid] = {
+          price: data.price,
+          username: data.username,
+          password: data.password,
+          secret: data.secret,
+          buyers: []
+        };
+        if (data.name && data.name !== '-') {
+          all.products[data.pid].name = data.name;
+        }
+        await saveData(env, all);
+        await sendMessage(env, chatId, tr('product_added', lang));
+      }
+      await env.DB.prepare('DELETE FROM pending_add WHERE user_id=?1').bind(chatId).run();
+      return;
+  }
+  await env.DB.prepare('UPDATE pending_add SET step=?2, data=?3 WHERE user_id=?1')
+    .bind(chatId, nextStep, JSON.stringify(data)).run();
+}
+
 export async function handleAddProduct(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.message?.chat.id;
   if (!chatId) return;
@@ -270,7 +356,7 @@ export async function handleAddProduct(update: TelegramUpdate, env: Env): Promis
   const text = update.message?.text || '';
   const args = text.split(/\s+/).slice(1);
   if (args.length === 0) {
-    await sendMessage(env, chatId, tr('ask_product_id', lang));
+    await startAddFlow(env, chatId, lang);
     return;
   }
   if (args.length < 5) {
@@ -689,6 +775,15 @@ export const commandHandlers: Record<string, CommandHandler> = {
   '/resend': handleResend,
   '/setlang': handleSetLang,
 };
+
+export async function handlePendingAddMessage(update: TelegramUpdate, env: Env): Promise<boolean> {
+  const chatId = update.message?.chat.id;
+  if (!chatId) return false;
+  const row = await env.DB.prepare('SELECT step FROM pending_add WHERE user_id=?1').bind(chatId).first<any>();
+  if (!row) return false;
+  await continueAddFlow(update, env);
+  return true;
+}
 
 // --- Callback handlers ---
 
