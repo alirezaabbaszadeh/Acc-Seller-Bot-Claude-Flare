@@ -223,12 +223,14 @@ To deploy the Worker:
    wrangler d1 migrations apply account-bot
    ```
 6. From the `worker/my-worker` directory, set the required secrets:
-   ```bash
-   wrangler secret put BOT_TOKEN
-   wrangler secret put ADMIN_ID
-   wrangler secret put ADMIN_PHONE
-   wrangler secret put FERNET_KEY
-   ```
+  ```bash
+  wrangler secret put BOT_TOKEN
+  wrangler secret put ADMIN_ID
+  wrangler secret put ADMIN_PHONE
+  wrangler secret put AES_KEY
+  ```
+   The Worker still accepts `FERNET_KEY` for compatibility but this variable is
+   deprecated and will be removed in a future release.
 7. Deploy the Worker by running `wrangler deploy` (or `npm run deploy`).
 8. After deployment, set the Telegram webhook to point to the Worker route:
    ```bash
@@ -259,7 +261,8 @@ existing state:
    wrangler secret put BOT_TOKEN
    wrangler secret put ADMIN_ID
    wrangler secret put ADMIN_PHONE
-   wrangler secret put FERNET_KEY
+   wrangler secret put AES_KEY
+   # `FERNET_KEY` is also supported for existing deployments
    ```
 
 3. Finally, point your Telegram webhook to the Worker route (as shown above).

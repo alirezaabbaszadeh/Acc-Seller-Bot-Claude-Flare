@@ -11,9 +11,9 @@ async function loadData(env: Env): Promise<Data> {
     const buyers = row.buyers ? JSON.parse(row.buyers) : [];
     data.products[row.id] = {
       price: row.price,
-      username: await decryptField(row.username, env.FERNET_KEY),
-      password: await decryptField(row.password, env.FERNET_KEY),
-      secret: await decryptField(row.secret, env.FERNET_KEY),
+      username: await decryptField(row.username, env.AES_KEY || env.FERNET_KEY),
+      password: await decryptField(row.password, env.AES_KEY || env.FERNET_KEY),
+      secret: await decryptField(row.secret, env.AES_KEY || env.FERNET_KEY),
       buyers,
     };
     if (row.name) data.products[row.id].name = row.name;
@@ -45,9 +45,10 @@ async function saveData(env: Env, data: Data): Promise<void> {
   ];
 
   for (const [id, product] of Object.entries(data.products)) {
-    const encUser = await encryptField(product.username, env.FERNET_KEY);
-    const encPass = await encryptField(product.password, env.FERNET_KEY);
-    const encSecret = await encryptField(product.secret, env.FERNET_KEY);
+    const key = env.AES_KEY || env.FERNET_KEY;
+    const encUser = await encryptField(product.username, key);
+    const encPass = await encryptField(product.password, key);
+    const encSecret = await encryptField(product.secret, key);
     const buyers = JSON.stringify(product.buyers || []);
     statements.push(
       env.DB.prepare(

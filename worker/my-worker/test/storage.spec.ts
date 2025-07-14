@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import worker from '../src';
 
 // Provide a fixed key for crypto operations
-env.FERNET_KEY = 'MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=';
+env.AES_KEY = 'MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=';
 
 const sampleData = {
   products: {
