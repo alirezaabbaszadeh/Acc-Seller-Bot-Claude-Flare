@@ -213,20 +213,24 @@ To deploy the Worker:
 2. Edit `worker/my-worker/wrangler.toml` and replace the example `account_id`,
    `route`, and resource IDs with values from your Cloudflare account.
 3. Create the KV namespace defined in the `wrangler.toml` file and note its IDs.
-4. Create the D1 database and apply migrations:
+4. Create the R2 bucket defined in the `wrangler.toml` file:
+   ```bash
+   wrangler r2 bucket create payment-proofs
+   ```
+5. Create the D1 database and apply migrations:
    ```bash
    wrangler d1 create account-bot
    wrangler d1 migrations apply account-bot
    ```
-5. From the `worker/my-worker` directory, set the required secrets:
+6. From the `worker/my-worker` directory, set the required secrets:
    ```bash
    wrangler secret put BOT_TOKEN
    wrangler secret put ADMIN_ID
    wrangler secret put ADMIN_PHONE
    wrangler secret put FERNET_KEY
    ```
-6. Deploy the Worker by running `wrangler deploy` (or `npm run deploy`).
-7. After deployment, set the Telegram webhook to point to the Worker route:
+7. Deploy the Worker by running `wrangler deploy` (or `npm run deploy`).
+8. After deployment, set the Telegram webhook to point to the Worker route:
    ```bash
    curl "https://api.telegram.org/bot<YOUR_TOKEN>/setWebhook?url=https://<YOUR_WORKER_DOMAIN>/telegram"
    ```

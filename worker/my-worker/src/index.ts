@@ -12,7 +12,7 @@
  */
 
 import type { Env } from './env';
-import { commandHandlers, handleCallbackQuery, type TelegramUpdate } from './telegram';
+import { commandHandlers, handleCallbackQuery, handlePhoto, type TelegramUpdate } from './telegram';
 import { authenticator } from 'otplib';
 import { type Data, encryptField, decryptField } from './crypto';
 
@@ -123,6 +123,8 @@ export default {
                                         if (handler) {
                                                 await handler(update, env);
                                         }
+                                } else if (update.message?.photo) {
+                                        await handlePhoto(update, env);
                                 } else if (update.callback_query) {
                                         await handleCallbackQuery(update, env);
                                 }
