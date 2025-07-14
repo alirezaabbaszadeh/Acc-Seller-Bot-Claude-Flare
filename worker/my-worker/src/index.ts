@@ -12,13 +12,13 @@
  */
 
 import type { Env } from './env';
-import { commandHandlers, handleCallbackQuery, handlePhoto, type TelegramUpdate } from './telegram';
+import { commandHandlers, handleCallbackQuery, handlePhoto, handlePendingAddMessage, type TelegramUpdate } from './telegram';
 import { authenticator } from 'otplib';
 import { type Data, encryptField, decryptField } from './crypto';
 
 
 async function loadData(env: Env): Promise<Data> {
-    const data: Data = { products: {}, pending: [], languages: {} };
+    const data: Data = { products: {}, pending: [], pending_add: [], languages: {} };
 
     const prodRes = await env.DB.prepare('SELECT * FROM products').all();
     for (const row of prodRes.results as any[]) {
@@ -41,6 +41,15 @@ async function loadData(env: Env): Promise<Data> {
         product_id: r.product_id,
     }));
 
+    const addRes = await env.DB.prepare(
+        'SELECT user_id, step, data FROM pending_add'
+    ).all();
+    data.pending_add = (addRes.results as any[]).map((r) => ({
+        user_id: r.user_id,
+        step: r.step,
+        data: r.data ? JSON.parse(r.data) : {}
+    }));
+
     const langRes = await env.DB.prepare(
         'SELECT user_id, lang FROM languages'
     ).all();
@@ -56,6 +65,7 @@ async function saveData(env: Env, data: Data): Promise<void> {
         env.DB.prepare('DELETE FROM products'),
         env.DB.prepare('DELETE FROM pending'),
         env.DB.prepare('DELETE FROM languages'),
+        env.DB.prepare('DELETE FROM pending_add'),
     ];
 
     for (const [id, product] of Object.entries(data.products)) {
@@ -76,6 +86,14 @@ async function saveData(env: Env, data: Data): Promise<void> {
             env.DB.prepare(
                 'INSERT INTO pending (user_id, product_id) VALUES (?1, ?2)'
             ).bind(pending.user_id, pending.product_id)
+        );
+    }
+
+    for (const add of data.pending_add) {
+        statements.push(
+            env.DB.prepare(
+                'INSERT INTO pending_add (user_id, step, data) VALUES (?1, ?2, ?3)'
+            ).bind(add.user_id, add.step, JSON.stringify(add.data))
         );
     }
 
@@ -123,6 +141,10 @@ export default {
                                         const handler = commandHandlers[command];
                                         if (handler) {
                                                 await handler(update, env);
+                                        } else {
+                                                if (await handlePendingAddMessage(update, env)) {
+                                                        // handled
+                                                }
                                         }
                                 } else if (update.message?.photo) {
                                         await handlePhoto(update, env);
