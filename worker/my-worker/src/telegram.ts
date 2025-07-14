@@ -98,6 +98,7 @@ export interface InlineKeyboardMarkup {
 export interface TelegramMessage {
   chat: { id: number };
   text?: string;
+  photo?: { file_id: string }[];
 }
 
 export interface TelegramCallbackQuery {
@@ -121,6 +122,15 @@ export async function sendMessage(env: Env, chatId: number, text: string, replyM
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ chat_id: chatId, text, reply_markup: replyMarkup }),
+  });
+}
+
+export async function sendPhoto(env: Env, chatId: number, fileId: string, caption: string): Promise<Response> {
+  const url = `https://api.telegram.org/bot${env.BOT_TOKEN}/sendPhoto`;
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, photo: fileId, caption }),
   });
 }
 
@@ -568,6 +578,35 @@ export async function handleResend(update: TelegramUpdate, env: Env): Promise<vo
     await sendMessage(env, uid, tr('use_code_button', lang), codeKeyboard(pid, lang));
   }
   await sendMessage(env, chatId, tr('credentials_resent', lang));
+}
+
+export async function handlePhoto(update: TelegramUpdate, env: Env): Promise<void> {
+  const chatId = update.message?.chat.id;
+  if (!chatId) return;
+  const photos = update.message?.photo;
+  if (!photos || !photos.length) return;
+  const data = await loadData(env);
+  const pending = data.pending.find(p => p.user_id === chatId);
+  if (!pending) return;
+  const fileId = photos[photos.length - 1].file_id;
+  const fileInfoRes = await fetch(
+    `https://api.telegram.org/bot${env.BOT_TOKEN}/getFile?file_id=${fileId}`
+  );
+  if (!fileInfoRes.ok) return;
+  const fileInfo = await fileInfoRes.json();
+  const filePath = fileInfo.result.file_path;
+  const fileRes = await fetch(
+    `https://api.telegram.org/file/bot${env.BOT_TOKEN}/${filePath}`
+  );
+  await env.PROOFS.put(`${fileId}`, fileRes.body);
+  await sendPhoto(
+    env,
+    Number(env.ADMIN_ID),
+    fileId,
+    `/approve ${chatId} ${pending.product_id}`
+  );
+  const lang = await userLang(env, chatId);
+  await sendMessage(env, chatId, tr('payment_submitted', lang));
 }
 
 export const commandHandlers: Record<string, CommandHandler> = {
