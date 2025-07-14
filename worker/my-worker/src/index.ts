@@ -14,20 +14,79 @@
 import type { Env } from './env';
 import { commandHandlers, handleCallbackQuery, type TelegramUpdate } from './telegram';
 import { authenticator } from 'otplib';
-import { type Data, encryptData, decryptData } from './crypto';
+import { type Data, encryptField, decryptField } from './crypto';
 
 
 async function loadData(env: Env): Promise<Data> {
-    const stored = await env.DATA.get('state', 'json');
-    if (stored) {
-        return await decryptData(stored as Data, env.FERNET_KEY);
+    const data: Data = { products: {}, pending: [], languages: {} };
+
+    const prodRes = await env.DB.prepare('SELECT * FROM products').all();
+    for (const row of prodRes.results as any[]) {
+        const buyers = row.buyers ? JSON.parse(row.buyers) : [];
+        data.products[row.id] = {
+            price: row.price,
+            username: await decryptField(row.username, env.FERNET_KEY),
+            password: await decryptField(row.password, env.FERNET_KEY),
+            secret: await decryptField(row.secret, env.FERNET_KEY),
+            buyers,
+        };
+        if (row.name) data.products[row.id].name = row.name;
     }
-    return { products: {}, pending: [], languages: {} };
+
+    const pendRes = await env.DB.prepare(
+        'SELECT user_id, product_id FROM pending'
+    ).all();
+    data.pending = (pendRes.results as any[]).map((r) => ({
+        user_id: r.user_id,
+        product_id: r.product_id,
+    }));
+
+    const langRes = await env.DB.prepare(
+        'SELECT user_id, lang FROM languages'
+    ).all();
+    for (const row of langRes.results as any[]) {
+        data.languages[String(row.user_id)] = row.lang;
+    }
+
+    return data;
 }
 
 async function saveData(env: Env, data: Data): Promise<void> {
-    const encrypted = await encryptData(data, env.FERNET_KEY);
-    await env.DATA.put('state', JSON.stringify(encrypted));
+    const statements = [
+        env.DB.prepare('DELETE FROM products'),
+        env.DB.prepare('DELETE FROM pending'),
+        env.DB.prepare('DELETE FROM languages'),
+    ];
+
+    for (const [id, product] of Object.entries(data.products)) {
+        const encUser = await encryptField(product.username, env.FERNET_KEY);
+        const encPass = await encryptField(product.password, env.FERNET_KEY);
+        const encSecret = await encryptField(product.secret, env.FERNET_KEY);
+        const buyers = JSON.stringify(product.buyers || []);
+        statements.push(
+            env.DB.prepare(
+                'INSERT INTO products (id, price, username, password, secret, name, buyers) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)'
+            ).bind(id, product.price, encUser, encPass, encSecret, product.name ?? null, buyers)
+        );
+    }
+
+    for (const pending of data.pending) {
+        statements.push(
+            env.DB.prepare(
+                'INSERT INTO pending (user_id, product_id) VALUES (?1, ?2)'
+            ).bind(pending.user_id, pending.product_id)
+        );
+    }
+
+    for (const [uid, lang] of Object.entries(data.languages)) {
+        statements.push(
+            env.DB.prepare(
+                'INSERT INTO languages (user_id, lang) VALUES (?1, ?2)'
+            ).bind(Number(uid), lang)
+        );
+    }
+
+    await env.DB.batch(statements);
 }
 
 export default {

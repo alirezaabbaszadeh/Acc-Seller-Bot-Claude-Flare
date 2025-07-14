@@ -8,10 +8,6 @@ route = "https://example.com/*"
 [build]
 command = "npm run build"
 
-[[kv_namespaces]]
-binding = "DATA"
-id = "00000000000000000000000000000000"
-preview_id = "00000000000000000000000000000000"
 
 [[d1_databases]]
 binding = "DB"

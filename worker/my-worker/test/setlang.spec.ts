@@ -21,7 +21,7 @@ describe('setlang command', () => {
     for (const stmt of stmts) {
       await env.DB.exec(stmt);
     }
-    await env.DATA.delete('state');
+    await env.DB.exec('DELETE FROM products; DELETE FROM pending; DELETE FROM languages');
   });
 
   afterEach(() => {
