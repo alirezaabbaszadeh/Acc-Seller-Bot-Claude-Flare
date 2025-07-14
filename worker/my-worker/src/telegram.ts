@@ -4,7 +4,7 @@ import { type Data, encryptField, decryptField } from './crypto';
 import { authenticator } from 'otplib';
 
 async function loadData(env: Env): Promise<Data> {
-  const data: Data = { products: {}, pending: [], pending_add: [], languages: {} };
+  const data: Data = { products: {}, pending: [], pending_add: [], pending_edit: [], languages: {} };
 
   const prodRes = await env.DB.prepare('SELECT * FROM products').all();
   for (const row of prodRes.results as any[]) {
@@ -36,6 +36,15 @@ async function loadData(env: Env): Promise<Data> {
     data: r.data ? JSON.parse(r.data) : {}
   }));
 
+  const editRes = await env.DB.prepare(
+    'SELECT user_id, product_id, field FROM pending_edit'
+  ).all();
+  data.pending_edit = (editRes.results as any[]).map((r) => ({
+    user_id: r.user_id,
+    product_id: r.product_id,
+    field: r.field,
+  }));
+
   const langRes = await env.DB.prepare(
     'SELECT user_id, lang FROM languages'
   ).all();
@@ -52,6 +61,7 @@ async function saveData(env: Env, data: Data): Promise<void> {
     env.DB.prepare('DELETE FROM pending'),
     env.DB.prepare('DELETE FROM languages'),
     env.DB.prepare('DELETE FROM pending_add'),
+    env.DB.prepare('DELETE FROM pending_edit'),
   ];
 
   for (const [id, product] of Object.entries(data.products)) {
@@ -80,6 +90,14 @@ async function saveData(env: Env, data: Data): Promise<void> {
       env.DB.prepare(
         'INSERT INTO pending_add (user_id, step, data) VALUES (?1, ?2, ?3)'
       ).bind(add.user_id, add.step, JSON.stringify(add.data))
+    );
+  }
+
+  for (const edit of data.pending_edit) {
+    statements.push(
+      env.DB.prepare(
+        'INSERT INTO pending_edit (user_id, product_id, field) VALUES (?1, ?2, ?3)'
+      ).bind(edit.user_id, edit.product_id, edit.field)
     );
   }
 
@@ -343,6 +361,34 @@ async function continueAddFlow(update: TelegramUpdate, env: Env): Promise<void> 
   }
   await env.DB.prepare('UPDATE pending_add SET step=?2, data=?3 WHERE user_id=?1')
     .bind(chatId, nextStep, JSON.stringify(data)).run();
+}
+
+async function startEditFlow(env: Env, chatId: number, pid: string, field: string, lang: Lang) {
+  await env.DB.prepare(
+    'INSERT OR REPLACE INTO pending_edit (user_id, product_id, field) VALUES (?1, ?2, ?3)'
+  ).bind(chatId, pid, field).run();
+  await sendMessage(env, chatId, tr('enter_new_value', lang));
+}
+
+async function continueEditFlow(update: TelegramUpdate, env: Env): Promise<void> {
+  const chatId = update.message?.chat.id;
+  if (!chatId) return;
+  const row = await env.DB.prepare('SELECT product_id, field FROM pending_edit WHERE user_id=?1').bind(chatId).first<any>();
+  if (!row) return;
+  const lang = await userLang(env, chatId);
+  const value = update.message?.text || '';
+  const data = await loadData(env);
+  const product = data.products[row.product_id];
+  if (!product) {
+    await sendMessage(env, chatId, tr('product_not_found', lang));
+  } else if (!['price','username','password','secret','name'].includes(row.field)) {
+    await sendMessage(env, chatId, tr('invalid_field', lang));
+  } else {
+    product[row.field] = value;
+    await saveData(env, data);
+    await sendMessage(env, chatId, tr('product_updated', lang));
+  }
+  await env.DB.prepare('DELETE FROM pending_edit WHERE user_id=?1').bind(chatId).run();
 }
 
 export async function handleAddProduct(update: TelegramUpdate, env: Env): Promise<void> {
@@ -785,6 +831,15 @@ export async function handlePendingAddMessage(update: TelegramUpdate, env: Env):
   return true;
 }
 
+export async function handlePendingEditMessage(update: TelegramUpdate, env: Env): Promise<boolean> {
+  const chatId = update.message?.chat.id;
+  if (!chatId) return false;
+  const row = await env.DB.prepare('SELECT product_id FROM pending_edit WHERE user_id=?1').bind(chatId).first<any>();
+  if (!row) return false;
+  await continueEditFlow(update, env);
+  return true;
+}
+
 // --- Callback handlers ---
 
 export async function menuCallback(update: TelegramUpdate, env: Env): Promise<void> {
@@ -1121,7 +1176,7 @@ export async function editfieldCallback(update: TelegramUpdate, env: Env): Promi
   const parts = update.callback_query?.data.split(':') || [];
   const pid = parts[1];
   const field = parts[2];
-  await sendMessage(env, chatId, `/editproduct ${pid} ${field} <value>`);
+  await startEditFlow(env, chatId, pid, field, lang);
 }
 
 export async function buyerlistCallback(update: TelegramUpdate, env: Env): Promise<void> {

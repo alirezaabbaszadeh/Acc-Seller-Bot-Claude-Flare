@@ -12,13 +12,13 @@
  */
 
 import type { Env } from './env';
-import { commandHandlers, handleCallbackQuery, handlePhoto, handlePendingAddMessage, type TelegramUpdate } from './telegram';
+import { commandHandlers, handleCallbackQuery, handlePhoto, handlePendingAddMessage, handlePendingEditMessage, type TelegramUpdate } from './telegram';
 import { authenticator } from 'otplib';
 import { type Data, encryptField, decryptField } from './crypto';
 
 
 async function loadData(env: Env): Promise<Data> {
-    const data: Data = { products: {}, pending: [], pending_add: [], languages: {} };
+    const data: Data = { products: {}, pending: [], pending_add: [], pending_edit: [], languages: {} };
 
     const prodRes = await env.DB.prepare('SELECT * FROM products').all();
     for (const row of prodRes.results as any[]) {
@@ -50,6 +50,15 @@ async function loadData(env: Env): Promise<Data> {
         data: r.data ? JSON.parse(r.data) : {}
     }));
 
+    const editRes = await env.DB.prepare(
+        'SELECT user_id, product_id, field FROM pending_edit'
+    ).all();
+    data.pending_edit = (editRes.results as any[]).map((r) => ({
+        user_id: r.user_id,
+        product_id: r.product_id,
+        field: r.field,
+    }));
+
     const langRes = await env.DB.prepare(
         'SELECT user_id, lang FROM languages'
     ).all();
@@ -66,6 +75,7 @@ async function saveData(env: Env, data: Data): Promise<void> {
         env.DB.prepare('DELETE FROM pending'),
         env.DB.prepare('DELETE FROM languages'),
         env.DB.prepare('DELETE FROM pending_add'),
+        env.DB.prepare('DELETE FROM pending_edit'),
     ];
 
     for (const [id, product] of Object.entries(data.products)) {
@@ -94,6 +104,14 @@ async function saveData(env: Env, data: Data): Promise<void> {
             env.DB.prepare(
                 'INSERT INTO pending_add (user_id, step, data) VALUES (?1, ?2, ?3)'
             ).bind(add.user_id, add.step, JSON.stringify(add.data))
+        );
+    }
+
+    for (const edit of data.pending_edit) {
+        statements.push(
+            env.DB.prepare(
+                'INSERT INTO pending_edit (user_id, product_id, field) VALUES (?1, ?2, ?3)'
+            ).bind(edit.user_id, edit.product_id, edit.field)
         );
     }
 
@@ -143,6 +161,8 @@ export default {
                                                 await handler(update, env);
                                         } else {
                                                 if (await handlePendingAddMessage(update, env)) {
+                                                        // handled
+                                                } else if (await handlePendingEditMessage(update, env)) {
                                                         // handled
                                                 }
                                         }
