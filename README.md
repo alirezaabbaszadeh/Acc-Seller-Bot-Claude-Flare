@@ -231,7 +231,15 @@ To deploy the Worker:
    wrangler d1 create account-bot
    wrangler d1 migrations apply account-bot
    ```
-5. From the `worker/my-worker` directory, set the required secrets:
+5. Generate a base64-encoded AES key for encrypting credentials. You can
+   create one with:
+
+   ```bash
+   openssl rand -base64 32
+   ```
+   Copy the output and save it for the next step.
+
+6. From the `worker/my-worker` directory, set the required secrets:
   ```bash
   wrangler secret put BOT_TOKEN
   wrangler secret put ADMIN_ID
@@ -240,8 +248,8 @@ To deploy the Worker:
   ```
    The Worker still accepts `FERNET_KEY` for compatibility but this variable is
    deprecated and will be removed in a future release.
-6. Deploy the Worker by running `wrangler deploy` (or `npm run deploy`).
-7. After deployment, set the Telegram webhook to point to the Worker route:
+7. Deploy the Worker by running `wrangler deploy` (or `npm run deploy`).
+8. After deployment, set the Telegram webhook to point to the Worker route:
    ```bash
    curl "https://api.telegram.org/bot<YOUR_TOKEN>/setWebhook?url=https://<YOUR_WORKER_DOMAIN>/telegram"
    ```
