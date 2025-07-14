@@ -29,7 +29,7 @@ describe('setlang command', () => {
     mockFetch.mockClear();
   });
 
-  it('updates language in KV', async () => {
+  it('updates language in the database', async () => {
     const update = { message: { chat: { id: 2 }, text: '/setlang fa' } };
     const req = new Request('http://example.com/telegram', {
       method: 'POST',

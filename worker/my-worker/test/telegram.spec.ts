@@ -30,7 +30,7 @@ describe('POST /telegram', () => {
     mockFetch.mockClear();
   });
 
-  it('handles /addproduct message and updates KV', async () => {
+  it('handles /addproduct message and updates the database', async () => {
     const update = {
       message: {
         chat: { id: 1 },
