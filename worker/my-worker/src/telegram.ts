@@ -199,6 +199,66 @@ export async function handleStart(update: TelegramUpdate, env: Env): Promise<voi
   await sendMessage(env, chatId, tr('welcome', lang));
 }
 
+export async function handleProducts(update: TelegramUpdate, env: Env): Promise<void> {
+  const chatId = update.message?.chat.id;
+  if (!chatId) return;
+  const lang = await userLang(env, chatId);
+  const data = await loadData(env);
+  const products = Object.entries(data.products);
+  if (!products.length) {
+    await sendMessage(env, chatId, tr('no_products', lang));
+    return;
+  }
+  for (const [pid, info] of products) {
+    let text = `${pid}: ${info.price}`;
+    if (info.name) text += `\n${info.name}`;
+    await sendMessage(env, chatId, text, productKeyboard(pid, lang));
+  }
+}
+
+export async function handleContact(update: TelegramUpdate, env: Env): Promise<void> {
+  const chatId = update.message?.chat.id;
+  if (!chatId) return;
+  const lang = await userLang(env, chatId);
+  const text = tr('admin_phone', lang).replace('{phone}', env.ADMIN_PHONE);
+  await sendMessage(env, chatId, text);
+}
+
+export async function handleHelp(update: TelegramUpdate, env: Env): Promise<void> {
+  const chatId = update.message?.chat.id;
+  if (!chatId) return;
+  const lang = await userLang(env, chatId);
+  const userCmds = [
+    tr('help_user_start', lang),
+    tr('help_user_products', lang),
+    tr('help_user_code', lang),
+    tr('help_user_contact', lang),
+    tr('help_user_setlang', lang),
+    tr('help_user_help', lang),
+  ];
+  const adminCmds = [
+    tr('help_admin_approve', lang),
+    tr('help_admin_reject', lang),
+    tr('help_admin_pending', lang),
+    tr('help_admin_addproduct', lang),
+    tr('help_admin_editproduct', lang),
+    tr('help_admin_buyers', lang),
+    tr('help_admin_deletebuyer', lang),
+    tr('help_admin_clearbuyers', lang),
+    tr('help_admin_resend', lang),
+    tr('help_admin_stats', lang),
+  ];
+  const text =
+    tr('help_user_header', lang) +
+    '\n' +
+    userCmds.join('\n') +
+    '\n\n' +
+    tr('help_admin_header', lang) +
+    '\n' +
+    adminCmds.join('\n');
+  await sendMessage(env, chatId, text);
+}
+
 export async function handleAddProduct(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.message?.chat.id;
   if (!chatId) return;
@@ -612,6 +672,9 @@ export async function handlePhoto(update: TelegramUpdate, env: Env): Promise<voi
 
 export const commandHandlers: Record<string, CommandHandler> = {
   '/start': handleStart,
+  '/products': handleProducts,
+  '/contact': handleContact,
+  '/help': handleHelp,
   '/addproduct': handleAddProduct,
   '/pending': handlePending,
   '/stats': handleStats,
