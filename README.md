@@ -198,6 +198,15 @@ wrangler d1 migrations apply
 ```
 
 The migration files reside in `worker/my-worker/migrations/`.
+Run the Worker tests with Wrangler's Vitest integration from the Worker
+directory:
+
+```bash
+cd worker/my-worker
+npx wrangler vitest
+```
+
+The default `npm test` script runs the same command.
 ## Worker Deployment
 
 This project includes a Cloudflare Worker located in `worker/my-worker` that can
