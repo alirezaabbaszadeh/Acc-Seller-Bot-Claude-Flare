@@ -84,7 +84,7 @@ describe('POST /telegram', () => {
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const body = JSON.parse((mockFetch.mock.calls[0][1] as RequestInit).body as string);
-    expect(body.text).toBe(tr('welcome'));
+    expect(body.text).toBe(tr('welcome', 'en'));
 
     const dataReq = new Request('http://example.com/data');
     const ctx2 = createExecutionContext();
