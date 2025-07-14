@@ -7,9 +7,8 @@ A Telegram bot for selling products with manual payment approval and two-factor 
 - [Language Support](#language-support)
 - [Menu Navigation](#menu-navigation)
 - [Worker Deployment](#worker-deployment)
-- [Switching from `bot.py` to the Worker](#switching-from-botpy-to-the-worker)
 - [Wrangler Commands](#wrangler-commands)
-- [Legacy Python Deployment](#legacy-python-deployment)
+- [Development](#development)
 
 ## Features
 - Admin can add products with price, credentials, TOTP secret, and optional name.
@@ -135,51 +134,6 @@ To deploy the Worker:
 Once the webhook is configured, Telegram will deliver updates to the `/telegram`
 endpoint of your Worker.
 
-## Switching from `bot.py` to the Worker
-
-If you have been running the bot locally with `bot.py` and want to move to the
-Cloudflare Worker, deploy the Worker as described above and then copy your
-existing state:
-
-1. Upload your local `data.json` to the Worker using the `/data` endpoint:
-
-   ```bash
-   curl -X POST -H 'Content-Type: application/json' \
-        --data @data.json https://<YOUR_WORKER_DOMAIN>/data
-   ```
-
-2. Set the same secrets that `bot.py` used so the Worker can decrypt and use the
-   data:
-
-   ```bash
-   wrangler secret put BOT_TOKEN
-   wrangler secret put ADMIN_ID
-   wrangler secret put ADMIN_PHONE
-   wrangler secret put AES_KEY
-   # `FERNET_KEY` is also supported for existing deployments
-   ```
-
-3. Finally, point your Telegram webhook to the Worker route (as shown above).
-After this, you no longer need to run `bot.py`; the Worker will handle all
-   updates.
-
-## تفاوت‌های نسخه Worker با پایتون
-
-نسخه‌ی Cloudflare Worker بیشتر قابلیت‌های ربات را پوشش می‌دهد اما هنوز به طور کامل
-جایگزین پایتون نشده است. مهم‌ترین تفاوت‌ها عبارتند از:
-
-- ذخیره‌سازی در Worker بر پایه‌ی **D1** و نگهداری عکس‌های پرداخت در **R2** انجام
-  می‌شود؛ در پایتون فقط فایل `data.json` استفاده می‌شود و تصاویر مستقیماً برای
-  مدیر فوروارد می‌گردد.
-- در Worker با فشردن دکمه‌ی ویرایش، ربات مقدار جدید را درخواست کرده و پس از
-  دریافت آن را ذخیره می‌کند. می‌توانید این روند را با فرمان `/editproduct`
-  نیز آغاز کنید.
-- کد Worker نسبتاً تازه است و برخی آزمون‌های واحد و بهینه‌سازی‌ها در دست انجام
-  هستند.
-
-پس از تکمیل بخش‌های باقی‌مانده و پایدار شدن کد TypeScript، می‌توان اجرای ربات را
-فقط بر بستر Worker ادامه داد و نیاز به `bot.py` رفع خواهد شد.
-
 ## Wrangler Commands
 
 Common Wrangler CLI commands for working on the Worker and databases:
@@ -232,117 +186,13 @@ bucket_name = "payment-proofs"
 preview_bucket_name = "payment-proofs-dev"
 ```
 
-## Legacy Python Deployment
 
-The original Python script (`bot.py`) is still provided for reference. The
-preferred way to run the bot is via the Cloudflare Worker above. Use this
-section only if you cannot deploy a Worker.
-
-### Quick Start
-Install the package in editable mode and run the bot with your token:
-
-```bash
-pip install -e .
-python bot.py <TOKEN>
-```
-
-Alternatively set `BOT_TOKEN` and use the installed script:
-
-```bash
-BOT_TOKEN=<TOKEN> account-seller-bot
-```
-
-### Setup
-1. Install the project in editable mode:
-
-   ```bash
-   pip install -e .
-   ```
-
-   For development, include optional dependencies with:
-
-   ```bash
-   pip install -e .[dev]
-   ```
-
-2. The bot stores its state in a `data.json` file located next to `bot.py`.
-   **Do not commit this file.** It is excluded via `.gitignore` and will be
-   created automatically on first run if it doesn't exist.
-   If you prefer to create it manually, start with the following content:
-
-   ```json
-   {"products": {}, "pending": [], "languages": {}}
-   ```
-
-   Set the following environment variables **before running the bot**. The
-   application will exit if any is missing or invalid:
-
-   - `ADMIN_ID` – Telegram user ID of the admin (integer)
-   - `ADMIN_PHONE` – phone number shown when users run `/contact`
-   - `FERNET_KEY` – encryption key for credentials (generate with \
-     `python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'`)
-     Keep this key secret and consistent. Changing it will make existing
-     `data.json` contents unreadable.
-   - `DATA_FILE` – optional path to the JSON storage file. Defaults to `data.json` next to `bot.py`.
-
-3. Run the bot with your bot token. Pass it as an argument or via the `BOT_TOKEN` environment variable:
-
-   ```bash
-   python bot.py <TOKEN>
-   # or
-   BOT_TOKEN=<TOKEN> python bot.py
-
-   # using the installed script
-   account-seller-bot <TOKEN>
-   # or
-   BOT_TOKEN=<TOKEN> account-seller-bot
-   ```
-
-### Docker
-A `Dockerfile` is provided to run the Python version in a container.
-
-Build the image:
-
-```bash
-docker build -t accounts-bot .
-```
-
-Run the container with your bot token and required admin environment variables
-using `-e` flags:
-
-```bash
-docker run --rm -e ADMIN_ID=<YOUR_ID> -e ADMIN_PHONE=<YOUR_PHONE> \
-    -e BOT_TOKEN=<TOKEN> accounts-bot
-```
-
-### Development
-Run code style checks and tests with the following commands:
-
-```bash
-flake8
-pytest
-```
-
-When working on the Cloudflare Worker, use Node.js 20 or later so `wrangler`
-can start the development server without errors.
-
-The unit tests require `python-telegram-bot`. Tests depending on it are skipped
-automatically when the package is missing so the suite can run without the
-dependency.
-The Worker tests rely on a local D1 database. Before executing the test suite
-you must apply the migrations with:
+## Development
+Use Node.js 20 or newer so `wrangler` can run correctly. The test suite requires a local D1 database. Apply migrations before running the tests:
 
 ```bash
 wrangler d1 migrations apply
+npx vitest run
 ```
 
 The migration files reside in `worker/my-worker/migrations/`.
-Run the Worker tests with Wrangler's Vitest integration from the Worker
-directory:
-
-```bash
-cd worker/my-worker
-npx wrangler vitest
-```
-
-The default `npm test` script runs the same command.
