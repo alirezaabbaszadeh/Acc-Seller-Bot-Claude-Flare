@@ -11,6 +11,7 @@ A Telegram bot for selling products with manual payment approval and two-factor 
 - [Docker](#docker)
 - [Development](#development)
 - [Worker Deployment](#worker-deployment)
+- [Wrangler Commands](#wrangler-commands)
 
 ## Features
 - Admin can add products with price, credentials, TOTP secret, and optional name.
@@ -275,5 +276,57 @@ existing state:
    ```
 
 3. Finally, point your Telegram webhook to the Worker route (as shown above).
-   After this, you no longer need to run `bot.py`; the Worker will handle all
+After this, you no longer need to run `bot.py`; the Worker will handle all
    updates.
+
+## Wrangler Commands
+
+Common Wrangler CLI commands for working on the Worker and databases:
+
+### Development server
+
+Run a local development server with automatic reloads:
+
+```bash
+wrangler dev
+```
+
+### Remote preview
+
+Test against Cloudflare's edge in a preview environment:
+
+```bash
+wrangler dev --remote
+```
+
+### Database queries
+
+Execute SQL or apply migrations to the D1 database:
+
+```bash
+wrangler d1 execute account-bot --command "SELECT * FROM purchases;"
+wrangler d1 migrations apply account-bot
+```
+
+### Secrets and bindings
+
+Store secrets used by your Worker:
+
+```bash
+wrangler secret put BOT_TOKEN
+wrangler secret put ADMIN_ID
+```
+
+Define D1 and R2 bindings in `wrangler.toml`:
+
+```toml
+[[d1_databases]]
+binding = "DB"
+database_name = "account-bot"
+database_id = "<your-database-id>"
+
+[[r2_buckets]]
+binding = "PROOFS"
+bucket_name = "payment-proofs"
+preview_bucket_name = "payment-proofs-dev"
+```
