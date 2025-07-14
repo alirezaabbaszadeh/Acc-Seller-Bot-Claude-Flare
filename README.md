@@ -4,14 +4,12 @@ A Telegram bot for selling products with manual payment approval and two-factor 
 
 ## Table of Contents
 - [Features](#features)
-- [Quick Start](#quick-start)
-- [Setup](#setup)
 - [Language Support](#language-support)
 - [Menu Navigation](#menu-navigation)
-- [Docker](#docker)
-- [Development](#development)
 - [Worker Deployment](#worker-deployment)
+- [Switching from `bot.py` to the Worker](#switching-from-botpy-to-the-worker)
 - [Wrangler Commands](#wrangler-commands)
+- [Legacy Python Deployment](#legacy-python-deployment)
 
 ## Features
 - Admin can add products with price, credentials, TOTP secret, and optional name.
@@ -30,65 +28,6 @@ A Telegram bot for selling products with manual payment approval and two-factor 
 - پشتیبانی از منوهای سلسله‌مراتبی با دکمه‌های تلگرامی.
 - دکمه «بازگشت» و دکمه‌های جدید مدیریتی به منو افزوده شده‌اند.
 
-## Quick Start
-Install the package in editable mode and run the bot with your token:
-
-```bash
-pip install -e .
-python bot.py <TOKEN>
-```
-
-Alternatively set `BOT_TOKEN` and use the installed script:
-
-```bash
-BOT_TOKEN=<TOKEN> account-seller-bot
-```
-
-## Setup
-1. Install the project in editable mode:
-
-   ```bash
-   pip install -e .
-   ```
-
-   For development, include optional dependencies with:
-
-   ```bash
-   pip install -e .[dev]
-   ```
-
-2. The bot stores its state in a `data.json` file located next to `bot.py`.
-   **Do not commit this file.** It is excluded via `.gitignore` and will be
-   created automatically on first run if it doesn't exist.
-   If you prefer to create it manually, start with the following content:
-
-   ```json
-   {"products": {}, "pending": [], "languages": {}}
-   ```
-
-   Set the following environment variables **before running the bot**. The
-   application will exit if any is missing or invalid:
-
-   - `ADMIN_ID` – Telegram user ID of the admin (integer)
-   - `ADMIN_PHONE` – phone number shown when users run `/contact`
-   - `FERNET_KEY` – encryption key for credentials (generate with \
-     `python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'`)
-     Keep this key secret and consistent. Changing it will make existing
-     `data.json` contents unreadable.
-   - `DATA_FILE` – optional path to the JSON storage file. Defaults to `data.json` next to `bot.py`.
-
-3. Run the bot with your bot token. Pass it as an argument or via the `BOT_TOKEN` environment variable:
-
-   ```bash
-   python bot.py <TOKEN>
-   # or
-   BOT_TOKEN=<TOKEN> python bot.py
-
-   # using the installed script
-   account-seller-bot <TOKEN>
-   # or
-   BOT_TOKEN=<TOKEN> account-seller-bot
-   ```
 
 ## Language Support
 Users can switch their preferred language with:
@@ -147,67 +86,6 @@ the admin menu to add items interactively.
 This is a minimal implementation and does not include persistent database
 storage or full error handling.
 
-## Docker
-A `Dockerfile` is provided to run the bot in a container.
-
-Build the image:
-
-```bash
-docker build -t accounts-bot .
-```
-
-Run the container with your bot token and required admin environment variables
-using `-e` flags:
-
-```bash
-docker run --rm -e ADMIN_ID=<YOUR_ID> -e ADMIN_PHONE=<YOUR_PHONE> \
-    -e BOT_TOKEN=<TOKEN> accounts-bot
-```
-
-### Managing pending purchases
-List pending purchases:
-
-```bash
-/pending
-```
-
-Reject a pending purchase:
-
-```bash
-/reject <user_id> <product_id>
-```
-
-## Development
-Run code style checks and tests with the following commands:
-
-```bash
-flake8
-pytest
-```
-
-When working on the Cloudflare Worker, use Node.js 20 or later so `wrangler`
-can start the development server without errors.
-
-The unit tests require `python-telegram-bot`. Tests depending on it are skipped
-automatically when the package is missing so the suite can run without the
-dependency.
-The Worker tests rely on a local D1 database. Before executing the test suite
-you must apply the migrations with:
-
-```bash
-wrangler d1 migrations apply
-```
-
-The migration files reside in `worker/my-worker/migrations/`.
-Run the Worker tests with Wrangler's Vitest integration from the Worker
-directory:
-
-```bash
-cd worker/my-worker
-npx wrangler vitest
-```
-
-The default `npm test` script runs the same command.
 ## Worker Deployment
 
 This project includes a Cloudflare Worker located in `worker/my-worker` that can
@@ -353,3 +231,118 @@ binding = "PROOFS"
 bucket_name = "payment-proofs"
 preview_bucket_name = "payment-proofs-dev"
 ```
+
+## Legacy Python Deployment
+
+The original Python script (`bot.py`) is still provided for reference. The
+preferred way to run the bot is via the Cloudflare Worker above. Use this
+section only if you cannot deploy a Worker.
+
+### Quick Start
+Install the package in editable mode and run the bot with your token:
+
+```bash
+pip install -e .
+python bot.py <TOKEN>
+```
+
+Alternatively set `BOT_TOKEN` and use the installed script:
+
+```bash
+BOT_TOKEN=<TOKEN> account-seller-bot
+```
+
+### Setup
+1. Install the project in editable mode:
+
+   ```bash
+   pip install -e .
+   ```
+
+   For development, include optional dependencies with:
+
+   ```bash
+   pip install -e .[dev]
+   ```
+
+2. The bot stores its state in a `data.json` file located next to `bot.py`.
+   **Do not commit this file.** It is excluded via `.gitignore` and will be
+   created automatically on first run if it doesn't exist.
+   If you prefer to create it manually, start with the following content:
+
+   ```json
+   {"products": {}, "pending": [], "languages": {}}
+   ```
+
+   Set the following environment variables **before running the bot**. The
+   application will exit if any is missing or invalid:
+
+   - `ADMIN_ID` – Telegram user ID of the admin (integer)
+   - `ADMIN_PHONE` – phone number shown when users run `/contact`
+   - `FERNET_KEY` – encryption key for credentials (generate with \
+     `python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'`)
+     Keep this key secret and consistent. Changing it will make existing
+     `data.json` contents unreadable.
+   - `DATA_FILE` – optional path to the JSON storage file. Defaults to `data.json` next to `bot.py`.
+
+3. Run the bot with your bot token. Pass it as an argument or via the `BOT_TOKEN` environment variable:
+
+   ```bash
+   python bot.py <TOKEN>
+   # or
+   BOT_TOKEN=<TOKEN> python bot.py
+
+   # using the installed script
+   account-seller-bot <TOKEN>
+   # or
+   BOT_TOKEN=<TOKEN> account-seller-bot
+   ```
+
+### Docker
+A `Dockerfile` is provided to run the Python version in a container.
+
+Build the image:
+
+```bash
+docker build -t accounts-bot .
+```
+
+Run the container with your bot token and required admin environment variables
+using `-e` flags:
+
+```bash
+docker run --rm -e ADMIN_ID=<YOUR_ID> -e ADMIN_PHONE=<YOUR_PHONE> \
+    -e BOT_TOKEN=<TOKEN> accounts-bot
+```
+
+### Development
+Run code style checks and tests with the following commands:
+
+```bash
+flake8
+pytest
+```
+
+When working on the Cloudflare Worker, use Node.js 20 or later so `wrangler`
+can start the development server without errors.
+
+The unit tests require `python-telegram-bot`. Tests depending on it are skipped
+automatically when the package is missing so the suite can run without the
+dependency.
+The Worker tests rely on a local D1 database. Before executing the test suite
+you must apply the migrations with:
+
+```bash
+wrangler d1 migrations apply
+```
+
+The migration files reside in `worker/my-worker/migrations/`.
+Run the Worker tests with Wrangler's Vitest integration from the Worker
+directory:
+
+```bash
+cd worker/my-worker
+npx wrangler vitest
+```
+
+The default `npm test` script runs the same command.
