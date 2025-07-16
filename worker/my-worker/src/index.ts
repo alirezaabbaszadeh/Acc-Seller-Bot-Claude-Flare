@@ -13,7 +13,10 @@
  */
 
 import type { Env } from './env';
-import { commandHandlers, handleCallbackQuery, handlePhoto, handlePendingAddMessage, handlePendingEditMessage, type TelegramUpdate } from './telegram';
+import type { TelegramUpdate } from './telegram-utils';
+import { handlePhoto } from './telegram-utils';
+import { commandHandlers, handlePendingAddMessage, handlePendingEditMessage } from './telegram-commands';
+import { handleCallbackQuery } from './telegram-callbacks';
 import { authenticator } from 'otplib';
 
 
