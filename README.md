@@ -23,7 +23,8 @@ A Telegram bot for selling products with manual payment approval and two-factor 
 - Stats for each product are available with `/stats`.
 - Users can view the admin phone number with `/contact`.
 - Users can get a list of all commands with `/help`.
-- The Worker exposes `/totp` for generating authenticator codes.
+- The Worker exposes `/totp` for generating authenticator codes. This endpoint
+  requires a shared key when enabled.
 - Users may switch language from the main menu through the "Language" button or via `/setlang`. Bot messages support both English and Farsi.
 - پشتیبانی از منوهای سلسله‌مراتبی با دکمه‌های تلگرامی.
 - دکمه «بازگشت» و دکمه‌های جدید مدیریتی به منو افزوده شده‌اند.
@@ -134,13 +135,16 @@ Once the webhook is configured, Telegram will deliver updates to the `/telegram`
 endpoint of your Worker.
 
 ### `/totp` route
-Generate an authenticator code with a simple GET request:
+Generate an authenticator code with a GET request when the route is enabled:
 
 ```bash
-https://<worker-domain>/totp?secret=YOUR_SECRET
+https://<worker-domain>/totp?secret=YOUR_SECRET&key=YOUR_SHARED_KEY
 ```
 
-This relies on the Worker's installed `otplib` library to compute the TOTP.
+The request must include the `key` query parameter matching the `TOTP_KEY`
+environment variable. If `TOTP_KEY` is unset, the route is disabled. Keep this
+key private&mdash;anyone who can access `/totp` may generate valid TOTP codes
+for stored accounts.
 
 ## Wrangler Commands
 

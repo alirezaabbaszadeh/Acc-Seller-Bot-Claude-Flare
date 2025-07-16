@@ -8,4 +8,9 @@ export interface Env {
   AES_KEY: string;
   DB: D1Database;
   PROOFS: R2Bucket;
+  /**
+   * Shared key required to access the `/totp` route.
+   * Leave unset to disable this endpoint in production.
+   */
+  TOTP_KEY?: string;
 }
