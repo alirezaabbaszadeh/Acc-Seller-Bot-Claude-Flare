@@ -1,6 +1,7 @@
 import { env, createExecutionContext, waitOnExecutionContext } from 'cloudflare:test';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import worker from '../src';
+import { loadData } from '../src/data';
 
 env.AES_KEY = 'MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=';
 env.ADMIN_ID = '1';
@@ -47,11 +48,7 @@ describe('setlang command', () => {
     const body = JSON.parse((mockFetch.mock.calls[0][1] as RequestInit).body as string);
     expect(body.text).toBe('زبان به روز شد.');
 
-    const dataReq = new Request('http://example.com/data');
-    const ctx2 = createExecutionContext();
-    const resp = await worker.fetch(dataReq, env, ctx2);
-    await waitOnExecutionContext(ctx2);
-    const data = await resp.json();
+    const data = await loadData(env);
     expect(data.languages['2']).toBe('fa');
   });
 
@@ -71,11 +68,7 @@ describe('setlang command', () => {
     const body = JSON.parse((mockFetch.mock.calls[0][1] as RequestInit).body as string);
     expect(body.text).toBe('Unsupported language code.');
 
-    const dataReq = new Request('http://example.com/data');
-    const ctx2 = createExecutionContext();
-    const resp = await worker.fetch(dataReq, env, ctx2);
-    await waitOnExecutionContext(ctx2);
-    const data = await resp.json();
+    const data = await loadData(env);
     expect(data.languages).toEqual({});
   });
 });

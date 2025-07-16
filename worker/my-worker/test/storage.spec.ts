@@ -1,6 +1,6 @@
-import { env, createExecutionContext, waitOnExecutionContext } from 'cloudflare:test';
+import { env } from 'cloudflare:test';
 import { describe, it, expect, beforeEach } from 'vitest';
-import worker from '../src';
+import { loadData, saveData } from '../src/data';
 
 // Provide a fixed key for crypto operations
 env.AES_KEY = 'MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=';
@@ -31,14 +31,7 @@ describe('data encryption', () => {
   });
 
   it('encrypts and decrypts product fields', async () => {
-    const post = new Request('http://example.com/data', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(sampleData),
-    });
-    const ctx = createExecutionContext();
-    await worker.fetch(post, env, ctx);
-    await waitOnExecutionContext(ctx);
+    await saveData(env, sampleData);
 
     const row = await env.DB.prepare('SELECT username, password, secret FROM products WHERE id=?1').bind('p1').first<any>();
     if (!row) throw new Error('row not found');
@@ -46,11 +39,7 @@ describe('data encryption', () => {
     expect(row.password).not.toBe('pass');
     expect(row.secret).not.toBe('sec');
 
-    const getReq = new Request('http://example.com/data');
-    const ctx2 = createExecutionContext();
-    const resp = await worker.fetch(getReq, env, ctx2);
-    await waitOnExecutionContext(ctx2);
-    const loaded = await resp.json();
+    const loaded = await loadData(env);
     expect(loaded).toEqual(sampleData);
   });
 });
