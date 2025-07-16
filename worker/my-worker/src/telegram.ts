@@ -2,11 +2,10 @@ import type { Env } from './env';
 import { tr, type Lang } from './translations';
 import type { Data } from './crypto';
 import { authenticator } from 'otplib';
-import { loadData, saveData } from './data';
+import { loadData, saveData, getLanguage, setLanguage, listProducts, getProduct, upsertProduct, updateProductField, deleteProduct, addBuyer, removeBuyer, clearBuyers, listPending, addPending, removePending, getPendingForUser } from './data';
 
 async function userLang(env: Env, userId: number): Promise<Lang> {
-  const data = await loadData(env);
-  return (data.languages[userId.toString()] as Lang) ?? 'en';
+  return (await getLanguage(env, userId)) as Lang ?? 'en';
 }
 
 const SUPPORTED_LANGS = new Set<Lang>(['en', 'fa']);
@@ -131,8 +130,7 @@ export async function handleProducts(update: TelegramUpdate, env: Env): Promise<
   const chatId = update.message?.chat.id;
   if (!chatId) return;
   const lang = await userLang(env, chatId);
-  const data = await loadData(env);
-  const products = Object.entries(data.products);
+  const products = Object.entries(await listProducts(env));
   if (!products.length) {
     await sendMessage(env, chatId, tr('no_products', lang));
     return;
@@ -303,16 +301,12 @@ export async function handleAddProduct(update: TelegramUpdate, env: Env): Promis
   }
   const [pid, price, username, password, secret, ...nameParts] = args;
   const name = nameParts.join(' ');
-  const data = await loadData(env);
-  if (pid in data.products) {
+  const exists = await getProduct(env, pid);
+  if (exists) {
     await sendMessage(env, chatId, tr('product_exists', lang));
     return;
   }
-  data.products[pid] = { price, username, password, secret, buyers: [] };
-  if (name) {
-    data.products[pid].name = name;
-  }
-  await saveData(env, data);
+  await upsertProduct(env, pid, { price, username, password, secret, name: name || undefined, buyers: [] });
   await sendMessage(env, chatId, tr('product_added', lang));
 }
 
@@ -324,12 +318,12 @@ export async function handlePending(update: TelegramUpdate, env: Env): Promise<v
     await sendMessage(env, chatId, tr('unauthorized', lang));
     return;
   }
-  const data = await loadData(env);
-  if (!data.pending.length) {
+  const pending = await listPending(env);
+  if (!pending.length) {
     await sendMessage(env, chatId, tr('no_pending', lang));
     return;
   }
-  const lines = data.pending.map((p) =>
+  const lines = pending.map((p) =>
     tr('pending_entry', lang)
       .replace('{user_id}', String(p.user_id))
       .replace('{product_id}', p.product_id),
@@ -351,8 +345,7 @@ export async function handleStats(update: TelegramUpdate, env: Env): Promise<voi
     await sendMessage(env, chatId, tr('stats_usage', lang));
     return;
   }
-  const data = await loadData(env);
-  const product = data.products[pid];
+  const product = await getProduct(env, pid);
   if (!product) {
     await sendMessage(env, chatId, tr('product_not_found', lang));
     return;
@@ -379,8 +372,7 @@ export async function handleBuyers(update: TelegramUpdate, env: Env): Promise<vo
     await sendMessage(env, chatId, tr('buyers_usage', lang));
     return;
   }
-  const data = await loadData(env);
-  const product = data.products[pid];
+  const product = await getProduct(env, pid);
   if (!product) {
     await sendMessage(env, chatId, tr('product_not_found', lang));
     return;
@@ -412,9 +404,7 @@ export async function handleSetLang(update: TelegramUpdate, env: Env): Promise<v
     await sendMessage(env, chatId, tr('unsupported_language', currentLang));
     return;
   }
-  const data = await loadData(env);
-  data.languages[chatId.toString()] = code as Lang;
-  await saveData(env, data);
+  await setLanguage(env, chatId, code as Lang);
   await sendMessage(env, chatId, tr('language_set', code as Lang));
 }
 
@@ -433,22 +423,18 @@ export async function handleApprove(update: TelegramUpdate, env: Env): Promise<v
     await sendMessage(env, chatId, tr('approve_usage', lang));
     return;
   }
-  const data = await loadData(env);
-  const index = data.pending.findIndex(p => p.user_id === userId && p.product_id === pid);
-  if (index === -1) {
+  const pending = await getPendingForUser(env, userId);
+  if (!pending || pending.product_id !== pid) {
     await sendMessage(env, chatId, tr('pending_not_found', lang));
     return;
   }
-  data.pending.splice(index, 1);
-  const product = data.products[pid];
+  const product = await getProduct(env, pid);
   if (!product) {
     await sendMessage(env, chatId, tr('product_not_found', lang));
     return;
   }
-  const buyers = product.buyers || [];
-  if (!buyers.includes(userId)) buyers.push(userId);
-  product.buyers = buyers;
-  await saveData(env, data);
+  await removePending(env, userId, pid);
+  await addBuyer(env, pid, userId);
   const msg = tr('credentials_msg', lang)
     .replace('{username}', product.username)
     .replace('{password}', product.password);
@@ -472,14 +458,12 @@ export async function handleReject(update: TelegramUpdate, env: Env): Promise<vo
     await sendMessage(env, chatId, tr('reject_usage', lang));
     return;
   }
-  const data = await loadData(env);
-  const index = data.pending.findIndex(p => p.user_id === userId && p.product_id === pid);
-  if (index === -1) {
+  const pending = await getPendingForUser(env, userId);
+  if (!pending || pending.product_id !== pid) {
     await sendMessage(env, chatId, tr('pending_not_found', lang));
     return;
   }
-  data.pending.splice(index, 1);
-  await saveData(env, data);
+  await removePending(env, userId, pid);
   await sendMessage(env, chatId, tr('rejected', lang));
 }
 
@@ -492,8 +476,7 @@ export async function handleCode(update: TelegramUpdate, env: Env): Promise<void
     await sendMessage(env, chatId, tr('code_usage', lang));
     return;
   }
-  const data = await loadData(env);
-  const product = data.products[pid];
+  const product = await getProduct(env, pid);
   if (!product) {
     await sendMessage(env, chatId, tr('product_not_found', lang));
     return;
@@ -527,8 +510,7 @@ export async function handleEditProduct(update: TelegramUpdate, env: Env): Promi
     await sendMessage(env, chatId, tr('editproduct_usage', lang));
     return;
   }
-  const data = await loadData(env);
-  const product = data.products[pid];
+  const product = await getProduct(env, pid);
   if (!product) {
     await sendMessage(env, chatId, tr('product_not_found', lang));
     return;
@@ -537,8 +519,7 @@ export async function handleEditProduct(update: TelegramUpdate, env: Env): Promi
     await sendMessage(env, chatId, tr('invalid_field', lang));
     return;
   }
-  product[field] = value;
-  await saveData(env, data);
+  await updateProductField(env, pid, field, value);
   await sendMessage(env, chatId, tr('product_updated', lang));
 }
 
@@ -555,10 +536,9 @@ export async function handleDeleteProduct(update: TelegramUpdate, env: Env): Pro
     await sendMessage(env, chatId, tr('deleteproduct_usage', lang));
     return;
   }
-  const data = await loadData(env);
-  if (pid in data.products) {
-    delete data.products[pid];
-    await saveData(env, data);
+  const product = await getProduct(env, pid);
+  if (product) {
+    await deleteProduct(env, pid);
     await sendMessage(env, chatId, tr('product_deleted', lang));
   } else {
     await sendMessage(env, chatId, tr('product_not_found', lang));
@@ -580,8 +560,7 @@ export async function handleDeleteBuyer(update: TelegramUpdate, env: Env): Promi
     await sendMessage(env, chatId, tr('deletebuyer_usage', lang));
     return;
   }
-  const data = await loadData(env);
-  const product = data.products[pid];
+  const product = await getProduct(env, pid);
   if (!product) {
     await sendMessage(env, chatId, tr('product_not_found', lang));
     return;
@@ -592,9 +571,7 @@ export async function handleDeleteBuyer(update: TelegramUpdate, env: Env): Promi
     await sendMessage(env, chatId, tr('buyer_not_found', lang));
     return;
   }
-  buyers.splice(index, 1);
-  product.buyers = buyers;
-  await saveData(env, data);
+  await removeBuyer(env, pid, uid);
   await sendMessage(env, chatId, tr('buyer_removed', lang));
 }
 
@@ -611,14 +588,12 @@ export async function handleClearBuyers(update: TelegramUpdate, env: Env): Promi
     await sendMessage(env, chatId, tr('clearbuyers_usage', lang));
     return;
   }
-  const data = await loadData(env);
-  const product = data.products[pid];
+  const product = await getProduct(env, pid);
   if (!product) {
     await sendMessage(env, chatId, tr('product_not_found', lang));
     return;
   }
-  product.buyers = [];
-  await saveData(env, data);
+  await clearBuyers(env, pid);
   await sendMessage(env, chatId, tr('all_buyers_removed', lang));
 }
 
@@ -636,8 +611,7 @@ export async function handleResend(update: TelegramUpdate, env: Env): Promise<vo
     await sendMessage(env, chatId, tr('resend_usage', lang));
     return;
   }
-  const data = await loadData(env);
-  const product = data.products[pid];
+  const product = await getProduct(env, pid);
   if (!product) {
     await sendMessage(env, chatId, tr('product_not_found', lang));
     return;
@@ -670,8 +644,7 @@ export async function handlePhoto(update: TelegramUpdate, env: Env): Promise<voi
   if (!chatId) return;
   const photos = update.message?.photo;
   if (!photos || !photos.length) return;
-  const data = await loadData(env);
-  const pending = data.pending.find(p => p.user_id === chatId);
+  const pending = await getPendingForUser(env, chatId);
   if (!pending) return;
   const fileId = photos[photos.length - 1].file_id;
   const fileInfoRes = await fetch(
