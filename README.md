@@ -13,9 +13,8 @@
    مخزن را کلون کرده و وارد پوشه `worker/my-worker` شوید.
 2. **ویرایش تنظیمات**
    در فایل `wrangler.toml` مقادیر `account_id`، `database_id` و نام سطل‌ها را با اطلاعات حساب Cloudflare خود جایگزین کنید.
-3. **ایجاد منابع Cloudflare**
+3. **ایجاد پایگاه داده Cloudflare D1**
    ```bash
-   wrangler r2 bucket create payment-proofs
    wrangler d1 create account-bot
    wrangler d1 migrations apply account-bot
    ```

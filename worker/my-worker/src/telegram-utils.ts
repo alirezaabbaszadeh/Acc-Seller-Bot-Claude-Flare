@@ -1,6 +1,7 @@
 import type { Env } from './env';
 import { tr, type Lang } from './translations';
 import { getLanguage, getPendingForUser } from './data';
+import { bytesToB64 } from './crypto';
 
 export async function userLang(env: Env, userId: number): Promise<Lang> {
   return (await getLanguage(env, userId)) as Lang ?? 'en';
@@ -169,13 +170,12 @@ export async function handlePhoto(update: TelegramUpdate, env: Env): Promise<voi
     return;
   }
   try {
-    const putRes = await env.PROOFS.put(`${fileId}`, fileRes.body);
-    if (!putRes) {
-      console.error('Failed to store proof in R2');
-      return;
-    }
+    const data = bytesToB64(new Uint8Array(await fileRes.arrayBuffer()));
+    await env.DB.prepare(
+      'INSERT INTO proofs (id, user_id, product_id, data) VALUES (?1, ?2, ?3, ?4)'
+    ).bind(fileId, chatId, pending.product_id, data).run();
   } catch (err) {
-    console.error('Failed to store proof in R2', err);
+    console.error('Failed to store proof in D1', err);
     return;
   }
   await sendPhoto(

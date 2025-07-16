@@ -40,8 +40,7 @@ describe('photo upload flow', () => {
     mockFetch.mockClear();
   });
 
-  it('stores proof image in R2', async () => {
-    const putSpy = vi.spyOn(env.PROOFS, 'put');
+  it('stores proof image in D1', async () => {
     const update = { message: { chat: { id: 2 }, photo: [{ file_id: 'f1' }] } };
     const req = new Request('http://example.com/telegram', {
       method: 'POST',
@@ -52,9 +51,8 @@ describe('photo upload flow', () => {
     const res = await worker.fetch(req, env, ctx);
     await waitOnExecutionContext(ctx);
     expect(await res.text()).toBe('OK');
-
-    expect(putSpy).toHaveBeenCalledTimes(1);
-    expect(putSpy.mock.calls[0][0]).toBe('f1');
+    const row = await env.DB.prepare('SELECT id FROM proofs WHERE id=?1').bind('f1').first<any>();
+    expect(row?.id).toBe('f1');
     expect(mockFetch).toHaveBeenCalledTimes(4);
     expect(mockFetch.mock.calls[2][0]).toBe(SEND_PHOTO_URL);
     expect(mockFetch.mock.calls[3][0]).toBe(SEND_MSG_URL);
@@ -73,7 +71,7 @@ describe('photo upload flow', () => {
       }
       return new Response('sent');
     });
-    const putSpy = vi.spyOn(env.PROOFS, 'put');
+    const rowBefore = await env.DB.prepare('SELECT id FROM proofs WHERE id=?1').bind('f2').first<any>();
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const update = { message: { chat: { id: 2 }, photo: [{ file_id: 'f2' }] } };
     const req = new Request('http://example.com/telegram', {
@@ -86,7 +84,9 @@ describe('photo upload flow', () => {
     await waitOnExecutionContext(ctx);
     expect(await res.text()).toBe('OK');
 
-    expect(putSpy).not.toHaveBeenCalled();
+    const rowAfter = await env.DB.prepare('SELECT id FROM proofs WHERE id=?1').bind('f2').first<any>();
+    expect(rowBefore).toBeUndefined();
+    expect(rowAfter).toBeUndefined();
     expect(mockFetch).toHaveBeenCalledTimes(2);
     errorSpy.mockRestore();
   });
@@ -101,7 +101,7 @@ describe('photo upload flow', () => {
       }
       return telegramFetch(url);
     });
-    const putSpy = vi.spyOn(env.PROOFS, 'put');
+    const rowBefore = await env.DB.prepare('SELECT id FROM proofs WHERE id=?1').bind('f3').first<any>();
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const update = { message: { chat: { id: 2 }, photo: [{ file_id: 'f3' }] } };
     const req = new Request('http://example.com/telegram', {
@@ -114,7 +114,9 @@ describe('photo upload flow', () => {
     await waitOnExecutionContext(ctx);
     expect(await res.text()).toBe('OK');
 
-    expect(putSpy).toHaveBeenCalledTimes(1);
+    const rowAfter = await env.DB.prepare('SELECT id FROM proofs WHERE id=?1').bind('f3').first<any>();
+    expect(rowBefore).toBeUndefined();
+    expect(rowAfter?.id).toBe('f3');
     expect(photoCalls).toBe(2);
     expect(mockFetch).toHaveBeenCalledTimes(5);
     errorSpy.mockRestore();
@@ -130,7 +132,7 @@ describe('photo upload flow', () => {
       }
       return telegramFetch(url);
     });
-    const putSpy = vi.spyOn(env.PROOFS, 'put');
+    const rowBefore = await env.DB.prepare('SELECT id FROM proofs WHERE id=?1').bind('f4').first<any>();
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const update = { message: { chat: { id: 2 }, photo: [{ file_id: 'f4' }] } };
     const req = new Request('http://example.com/telegram', {
@@ -143,14 +145,22 @@ describe('photo upload flow', () => {
     await waitOnExecutionContext(ctx);
     expect(await res.text()).toBe('OK');
 
-    expect(putSpy).toHaveBeenCalledTimes(1);
+    const rowAfter = await env.DB.prepare('SELECT id FROM proofs WHERE id=?1').bind('f4').first<any>();
+    expect(rowBefore).toBeUndefined();
+    expect(rowAfter?.id).toBe('f4');
     expect(msgCalls).toBe(2);
     expect(mockFetch).toHaveBeenCalledTimes(5);
     errorSpy.mockRestore();
   });
 
-  it('handles R2 put failure gracefully', async () => {
-    vi.spyOn(env.PROOFS, 'put').mockRejectedValue(new Error('fail'));
+  it('handles DB insert failure gracefully', async () => {
+    vi.spyOn(env.DB, 'prepare').mockImplementation(() => {
+      return {
+        bind: () => ({
+          run: () => Promise.reject(new Error('fail')),
+        }),
+      } as any;
+    });
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const update = { message: { chat: { id: 2 }, photo: [{ file_id: 'f5' }] } };
     const req = new Request('http://example.com/telegram', {

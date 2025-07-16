@@ -45,9 +45,8 @@
    wrangler login
    ```
 2. ویرایش فایل `wrangler.toml` و جایگزین کردن شناسه‌ها با مقادیر حساب Cloudflare خود.
-3. ایجاد سطل R2 و پایگاه داده D1:
+3. ایجاد پایگاه داده D1:
    ```bash
-   wrangler r2 bucket create payment-proofs
    wrangler d1 create account-bot
    wrangler d1 migrations apply account-bot
    ```
@@ -64,7 +63,6 @@
 | `ADMIN_PHONE` | شماره تماس برای نمایش به کاربران |
 | `AES_KEY` | کلید AES برای رمزگذاری اطلاعات |
 | `DB` | اتصال پایگاه داده D1 |
-| `PROOFS` | سطل R2 برای بارگذاری رسیدها |
 | `TOTP_KEY` | کلید اشتراکی برای دسترسی به مسیر `/totp` (اختیاری) |
 
 ### مسیر `/totp`

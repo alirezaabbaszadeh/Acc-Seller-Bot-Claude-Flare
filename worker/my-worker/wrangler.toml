@@ -14,7 +14,3 @@ binding = "DB"
 database_name = "account-bot"
 database_id = "00000000-0000-0000-0000-000000000000" # placeholder - replace with your D1 database ID
 
-[[r2_buckets]]
-binding = "PROOFS"
-bucket_name = "payment-proofs" # placeholder - replace with your R2 bucket name
-preview_bucket_name = "payment-proofs-dev" # placeholder - replace with your preview bucket name
