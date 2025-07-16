@@ -123,8 +123,6 @@ To deploy the Worker:
   wrangler secret put ADMIN_PHONE
   wrangler secret put AES_KEY
   ```
-   The Worker still accepts `FERNET_KEY` for compatibility but this variable is
-   deprecated and will be removed in a future release.
 7. Deploy the Worker by running `wrangler deploy` (or `npm run deploy`).
 8. After deployment, set the Telegram webhook to point to the Worker route:
    ```bash
