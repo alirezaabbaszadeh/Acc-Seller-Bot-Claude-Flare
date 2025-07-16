@@ -1,6 +1,12 @@
 import { env } from 'cloudflare:test';
 import { beforeEach } from 'vitest';
 
+// Provide defaults required by the worker
+env.BOT_TOKEN ??= 'TEST';
+env.ADMIN_ID ??= '1';
+env.ADMIN_PHONE ??= '+10000000000';
+env.AES_KEY ??= 'MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=';
+
 // Ensure D1 and R2 are cleared between tests
 beforeEach(async () => {
   const stmts = [
