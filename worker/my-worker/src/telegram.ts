@@ -651,7 +651,7 @@ export async function handlePhoto(update: TelegramUpdate, env: Env): Promise<voi
     `https://api.telegram.org/bot${env.BOT_TOKEN}/getFile?file_id=${fileId}`
   );
   if (!fileInfoRes.ok) return;
-  const fileInfo = await fileInfoRes.json();
+  const fileInfo = (await fileInfoRes.json()) as any;
   const filePath = fileInfo.result.file_path;
   const fileRes = await fetch(
     `https://api.telegram.org/file/bot${env.BOT_TOKEN}/${filePath}`
@@ -719,7 +719,6 @@ export async function menuCallback(update: TelegramUpdate, env: Env): Promise<vo
       [{ text: tr('menu_back', lang), callback_data: 'menu:main' }],
     ];
     await sendMessage(env, chatId, tr('menu_language', lang), { inline_keyboard: buttons });
-    return;
     return;
   }
   switch (action) {
