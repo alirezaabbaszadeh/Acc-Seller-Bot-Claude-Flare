@@ -59,4 +59,35 @@ describe('photo upload flow', () => {
     expect(mockFetch.mock.calls[2][0]).toBe(SEND_PHOTO_URL);
     expect(mockFetch.mock.calls[3][0]).toBe(SEND_MSG_URL);
   });
+
+  it('handles failed file fetch gracefully', async () => {
+    mockFetch.mockImplementation((input: any) => {
+      const url = typeof input === 'string' ? input : input.url;
+      if (url.includes('/getFile')) {
+        return new Response(JSON.stringify({ ok: true, result: { file_path: 'foo.jpg' } }), {
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      if (url.includes('/file/bot')) {
+        return new Response('error', { status: 500 });
+      }
+      return new Response('sent');
+    });
+    const putSpy = vi.spyOn(env.PROOFS, 'put');
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const update = { message: { chat: { id: 2 }, photo: [{ file_id: 'f2' }] } };
+    const req = new Request('http://example.com/telegram', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(update),
+    });
+    const ctx = createExecutionContext();
+    const res = await worker.fetch(req, env, ctx);
+    await waitOnExecutionContext(ctx);
+    expect(await res.text()).toBe('OK');
+
+    expect(putSpy).not.toHaveBeenCalled();
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    errorSpy.mockRestore();
+  });
 });
