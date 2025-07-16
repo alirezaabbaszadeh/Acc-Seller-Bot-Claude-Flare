@@ -18,8 +18,22 @@ describe('Hello World user worker', () => {
 			const request = new Request('http://example.com/message');
 			const response = await SELF.fetch(request);
 			expect(await response.text()).toMatchInlineSnapshot(`"Hello, World!"`);
-		});
-	});
+        });
+});
+
+describe('POST /telegram', () => {
+  it('returns 400 for invalid JSON body', async () => {
+    const req = new Request('http://example.com/telegram', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{bad json',
+    });
+    const ctx = createExecutionContext();
+    const res = await worker.fetch(req, env, ctx);
+    await waitOnExecutionContext(ctx);
+    expect(res.status).toBe(400);
+  });
+});
 
 	describe('request for /random', () => {
     it.skip('/ responds with a random UUID (unit style)', async () => {

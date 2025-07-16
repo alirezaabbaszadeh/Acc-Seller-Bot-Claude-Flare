@@ -42,7 +42,12 @@ export default {
                                 if (request.method !== 'POST') {
                                         return new Response('Method Not Allowed', { status: 405 });
                                 }
-                                const update: TelegramUpdate = await request.json();
+                                let update: TelegramUpdate;
+                                try {
+                                        update = await request.json();
+                                } catch {
+                                        return new Response('Bad Request', { status: 400 });
+                                }
                                 const text = update.message?.text;
                                 if (text) {
                                         const command = text.split(/\s+/)[0] as keyof typeof commandHandlers;
