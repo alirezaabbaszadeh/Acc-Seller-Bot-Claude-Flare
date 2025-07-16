@@ -1,5 +1,5 @@
 name = "my-worker"
-account_id = "1234567890abcdef1234567890abcdef"
+account_id = "1234567890abcdef1234567890abcdef" # placeholder - use your real Cloudflare account ID
 main = "src/index.ts"
 compatibility_date = "2024-11-11"
 
@@ -12,9 +12,9 @@ command = "npm run compile"
 [[d1_databases]]
 binding = "DB"
 database_name = "account-bot"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "00000000-0000-0000-0000-000000000000" # placeholder - replace with your D1 database ID
 
 [[r2_buckets]]
 binding = "PROOFS"
-bucket_name = "payment-proofs"
-preview_bucket_name = "payment-proofs-dev"
+bucket_name = "payment-proofs" # placeholder - replace with your R2 bucket name
+preview_bucket_name = "payment-proofs-dev" # placeholder - replace with your preview bucket name

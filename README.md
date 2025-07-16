@@ -99,8 +99,10 @@ To deploy the Worker:
 
 1. Install [Wrangler](https://developers.cloudflare.com/workers/wrangler/) and
    ensure you are logged in (`wrangler login`).
-2. Edit `worker/my-worker/wrangler.toml` and replace the example `account_id`,
-   `route`, and resource IDs with values from your Cloudflare account.
+2. Edit `worker/my-worker/wrangler.toml`. The `account_id`, `database_id`, and
+   bucket names in that file are placeholders\u2014replace them (along with the
+   `route`) with the actual values from your Cloudflare account before
+   deploying.
 3. Create the R2 bucket defined in the `wrangler.toml` file:
    ```bash
    wrangler r2 bucket create payment-proofs
