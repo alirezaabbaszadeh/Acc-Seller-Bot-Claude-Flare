@@ -13,6 +13,7 @@
  */
 
 import type { Env } from './env';
+import { validateEnv } from './env';
 import type { TelegramUpdate } from './telegram-utils';
 import { handlePhoto } from './telegram-utils';
 import { commandHandlers, handlePendingAddMessage, handlePendingEditMessage } from './telegram-commands';
@@ -23,6 +24,11 @@ import { authenticator } from 'otplib';
 
 export default {
         async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+                try {
+                        validateEnv(env);
+                } catch (err) {
+                        return new Response((err as Error).message, { status: 500 });
+                }
                 const url = new URL(request.url);
                 switch (url.pathname) {
                         case '/totp':

@@ -114,9 +114,22 @@ To deploy the Worker:
    create one with:
 
    ```bash
-   openssl rand -base64 32
-   ```
-   Copy the output and save it for the next step.
+  openssl rand -base64 32
+  ```
+  Copy the output and save it for the next step.
+
+### Required environment variables
+
+Set the following secrets and bindings for the Worker:
+
+| Variable | Description |
+| -------- | ----------- |
+| `BOT_TOKEN` | Telegram bot token |
+| `ADMIN_ID` | Telegram user ID of the admin |
+| `ADMIN_PHONE` | Phone number shown when users run `/contact` |
+| `AES_KEY` | Base64 AES key for encrypting credentials |
+| `DB` | Cloudflare D1 database binding |
+| `PROOFS` | Cloudflare R2 bucket for uploaded proofs |
 
 6. From the `worker/my-worker` directory, set the required secrets:
   ```bash
