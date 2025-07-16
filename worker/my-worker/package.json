@@ -7,9 +7,10 @@
 		"dev": "wrangler dev",
 		"start": "wrangler dev",
 		"test": "vitest",
-		"cf-typegen": "wrangler types",
-		"build": "wrangler build"
-	},
+                "cf-typegen": "wrangler types",
+                "build": "wrangler build",
+                "compile": "tsc"
+        },
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "^0.8.19",
 		"typescript": "^5.5.2",
