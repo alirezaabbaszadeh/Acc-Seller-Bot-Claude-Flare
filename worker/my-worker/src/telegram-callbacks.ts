@@ -11,11 +11,13 @@ import {
   buildMainMenu,
   buildAdminMenu,
   buildProductsMenu,
+  SUPPORTED_LANGS,
   isAdmin,
   InlineKeyboardButton,
   CallbackHandler,
   TelegramUpdate
 } from "./telegram-utils";
+import { authenticator } from "otplib";
 
 // --- Callback handlers ---
 
