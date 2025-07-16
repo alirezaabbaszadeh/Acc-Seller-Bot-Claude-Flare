@@ -650,12 +650,19 @@ export async function handlePhoto(update: TelegramUpdate, env: Env): Promise<voi
   const fileInfoRes = await fetch(
     `https://api.telegram.org/bot${env.BOT_TOKEN}/getFile?file_id=${fileId}`
   );
-  if (!fileInfoRes.ok) return;
+  if (!fileInfoRes.ok) {
+    console.error('Failed to fetch file info');
+    return;
+  }
   const fileInfo = (await fileInfoRes.json()) as any;
   const filePath = fileInfo.result.file_path;
   const fileRes = await fetch(
     `https://api.telegram.org/file/bot${env.BOT_TOKEN}/${filePath}`
   );
+  if (!fileRes.ok || !fileRes.body) {
+    console.error('Failed to fetch file');
+    return;
+  }
   await env.PROOFS.put(`${fileId}`, fileRes.body);
   await sendPhoto(
     env,
