@@ -26,6 +26,13 @@ export default {
                 const url = new URL(request.url);
                 switch (url.pathname) {
                         case '/totp':
+                                if (!env.TOTP_KEY) {
+                                        return new Response('Not Found', { status: 404 });
+                                }
+                                const key = url.searchParams.get('key');
+                                if (key !== env.TOTP_KEY) {
+                                        return new Response('Unauthorized', { status: 401 });
+                                }
                                 const secret = url.searchParams.get('secret');
                                 if (!secret) {
                                         return new Response('Bad Request', { status: 400 });
