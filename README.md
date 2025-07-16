@@ -23,6 +23,7 @@ A Telegram bot for selling products with manual payment approval and two-factor 
 - Stats for each product are available with `/stats`.
 - Users can view the admin phone number with `/contact`.
 - Users can get a list of all commands with `/help`.
+- The Worker exposes `/totp` for generating authenticator codes.
 - Users may switch language from the main menu through the "Language" button or via `/setlang`. Bot messages support both English and Farsi.
 - پشتیبانی از منوهای سلسله‌مراتبی با دکمه‌های تلگرامی.
 - دکمه «بازگشت» و دکمه‌های جدید مدیریتی به منو افزوده شده‌اند.
@@ -131,6 +132,15 @@ To deploy the Worker:
 
 Once the webhook is configured, Telegram will deliver updates to the `/telegram`
 endpoint of your Worker.
+
+### `/totp` route
+Generate an authenticator code with a simple GET request:
+
+```bash
+https://<worker-domain>/totp?secret=YOUR_SECRET
+```
+
+This relies on the Worker's installed `otplib` library to compute the TOTP.
 
 ## Wrangler Commands
 
