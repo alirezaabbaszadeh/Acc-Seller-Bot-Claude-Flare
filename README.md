@@ -1,43 +1,63 @@
 # Account Seller Bot
 
-این مخزن شامل رباتی برای فروش حساب‌ها در تلگرام است. در این فایل راهنمای سریع نصب و راه‌اندازی برای کاربران تازه‌کار آورده شده است.
+این مخزن شامل رباتی است که با استفاده از **Cloudflare Workers** در بستر تلگرام فعالیت می‌کند. این راهنما برای افرادی نوشته شده که تجربهٔ زیادی در کار با Cloudflare یا Node.js ندارند و می‌خواهند قدم به قدم ربات را راه‌اندازی کنند.
 
 ## پیش‌نیازها
-- یک حساب Cloudflare فعال
-- نصب Node.js نسخه 20 یا بالاتر
-- نصب ابزار [Wrangler](https://developers.cloudflare.com/workers/wrangler/) برای مدیریت Cloudflare Workers
 
-## مراحل نصب سریع
+1. **حساب Cloudflare** – اگر حساب ندارید به آدرس [cloudflare.com](https://dash.cloudflare.com/sign-up) بروید و یک حساب رایگان ایجاد کنید.
+2. **نصب Node.js نسخهٔ 20 یا بالاتر** – ساده‌ترین روش استفاده از [nvm](https://github.com/nvm-sh/nvm) است:
+   ```bash
+   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
+   source ~/.nvm/nvm.sh
+   nvm install 20
+   ```
+3. **نصب Wrangler** – ابزار خط فرمان Cloudflare:
+   ```bash
+   npm install -g wrangler
+   wrangler login
+   ```
+4. **توکن ربات تلگرام** – از [@BotFather](https://t.me/BotFather) یک ربات بسازید و توکن آن را نگه دارید.
 
-1. **دریافت کد**
-   مخزن را کلون کرده و وارد پوشه `worker/my-worker` شوید.
-2. **ویرایش تنظیمات**
-   در فایل `wrangler.toml` مقادیر `account_id`، `database_id` و نام سطل‌ها را با اطلاعات حساب Cloudflare خود جایگزین کنید.
-3. **ایجاد منابع Cloudflare**
+## نصب و راه‌اندازی گام‌به‌گام
+
+1. **دریافت کد منبع**
+   ```bash
+   git clone https://github.com/<your-name>/Acc-Seller-Bot-Claude-Flare.git
+   cd Acc-Seller-Bot-Claude-Flare/worker/my-worker
+   npm install
+   ```
+2. **ویرایش فایل `wrangler.toml`**
+   - مقدار `account_id` را از داشبورد Cloudflare بردارید و جایگزین کنید.
+   - نام سطل‌های R2 و شناسهٔ پایگاه داده D1 را به دلخواه تنظیم کنید.
+   - در صورت نیاز مقدار `route` را برای دامنهٔ دلخواه خود تغییر دهید.
+3. **ایجاد منابع Cloudflare (R2 و D1)**
    ```bash
    wrangler r2 bucket create payment-proofs
    wrangler d1 create account-bot
    wrangler d1 migrations apply account-bot
    ```
-4. **قرار دادن متغیرهای محرمانه**
+4. **تولید کلید AES برای رمزگذاری**
    ```bash
-   wrangler secret put BOT_TOKEN
-   wrangler secret put ADMIN_ID
-   wrangler secret put ADMIN_PHONE
-   wrangler secret put AES_KEY
+   openssl rand -base64 32
    ```
-5. **انتشار Worker**
-   پس از انجام مراحل بالا دستور زیر را اجرا کنید:
+   خروجی را کپی و در مرحلهٔ بعد استفاده کنید.
+5. **قرار دادن متغیرهای محرمانه**
+   ```bash
+   wrangler secret put BOT_TOKEN       # توکن دریافتی از BotFather
+   wrangler secret put ADMIN_ID        # شناسهٔ عددی تلگرام مدیر
+   wrangler secret put ADMIN_PHONE     # شمارهٔ تماسی که به خریداران نمایش داده می‌شود
+   wrangler secret put AES_KEY         # کلید تولید شده در مرحلهٔ قبل
+   ```
+6. **انتشار Worker روی Cloudflare**
    ```bash
    wrangler deploy
    ```
-6. **تنظیم وب‌هوک تلگرام**
-   دامنه Worker خود را در فرمان زیر جایگزین کنید:
+7. **تنظیم وب‌هوک تلگرام**
+   آدرس Worker منتشر شده را در دستور زیر قرار دهید:
    ```bash
    curl "https://api.telegram.org/bot<YOUR_TOKEN>/setWebhook?url=https://<YOUR_WORKER_DOMAIN>/telegram"
    ```
 
-اکنون ربات آماده استفاده است و پیام‌های تلگرام را دریافت می‌کند.
+پس از ثبت وب‌هوک، ربات آمادهٔ استفاده خواهد بود و پیام‌های کاربران را دریافت می‌کند.
 
-## اطلاعات بیشتر
-برای آشنایی با جزئیات کامل‌تر و دستورات پیشرفته، فایل [docs/README.md](docs/README.md) را مطالعه کنید.
+برای آشنایی با قابلیت‌های پیشرفته و دستورات توسعه، به فایل [docs/README.md](docs/README.md) مراجعه کنید.

@@ -81,9 +81,10 @@ https://<worker-domain>/totp?secret=YOUR_SECRET&key=YOUR_SHARED_KEY
 - `wrangler d1 migrations apply` اعمال مهاجرت‌ها
 
 ## توسعه و تست
-برای اجرای تست‌ها نیاز به Node.js 20 و پایگاه داده D1 محلی دارید:
+برای توسعه‌ی محلی ابتدا وابستگی‌ها را نصب کنید و سپس تست‌ها را اجرا نمایید. برای این کار نیاز به Node.js 20 و پایگاه داده D1 محلی خواهید داشت:
 
 ```bash
+npm install
 wrangler d1 migrations apply
 npx vitest run
 ```
