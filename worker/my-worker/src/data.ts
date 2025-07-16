@@ -1,6 +1,132 @@
 import type { Env } from './env';
 import { type Data, encryptField, decryptField } from './crypto';
 
+export interface ProductRecord {
+  price: string;
+  username: string;
+  password: string;
+  secret: string;
+  name?: string;
+  buyers: number[];
+}
+
+export async function getProduct(env: Env, id: string): Promise<ProductRecord | null> {
+  const row = await env.DB.prepare('SELECT * FROM products WHERE id=?1').bind(id).first<any>();
+  if (!row) return null;
+  return {
+    price: row.price,
+    username: await decryptField(row.username, env.AES_KEY),
+    password: await decryptField(row.password, env.AES_KEY),
+    secret: await decryptField(row.secret, env.AES_KEY),
+    name: row.name ?? undefined,
+    buyers: row.buyers ? JSON.parse(row.buyers) : [],
+  };
+}
+
+export async function listProducts(env: Env): Promise<Record<string, ProductRecord>> {
+  const res = await env.DB.prepare('SELECT * FROM products').all();
+  const out: Record<string, ProductRecord> = {};
+  for (const row of res.results as any[]) {
+    out[row.id] = {
+      price: row.price,
+      username: await decryptField(row.username, env.AES_KEY),
+      password: await decryptField(row.password, env.AES_KEY),
+      secret: await decryptField(row.secret, env.AES_KEY),
+      name: row.name ?? undefined,
+      buyers: row.buyers ? JSON.parse(row.buyers) : [],
+    };
+  }
+  return out;
+}
+
+export async function upsertProduct(env: Env, id: string, product: ProductRecord): Promise<void> {
+  const encUser = await encryptField(product.username, env.AES_KEY);
+  const encPass = await encryptField(product.password, env.AES_KEY);
+  const encSecret = await encryptField(product.secret, env.AES_KEY);
+  const buyers = JSON.stringify(product.buyers);
+  await env.DB.batch([
+    env.DB.prepare(
+      'INSERT INTO products (id, price, username, password, secret, name, buyers) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7) ' +
+      'ON CONFLICT(id) DO UPDATE SET price=excluded.price, username=excluded.username, password=excluded.password, secret=excluded.secret, name=excluded.name, buyers=excluded.buyers'
+    ).bind(id, product.price, encUser, encPass, encSecret, product.name ?? null, buyers)
+  ]);
+}
+
+export async function deleteProduct(env: Env, id: string): Promise<void> {
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM products WHERE id=?1').bind(id)
+  ]);
+}
+
+export async function updateProductField(env: Env, id: string, field: string, value: string): Promise<void> {
+  if (!['price','username','password','secret','name'].includes(field)) {
+    return;
+  }
+  let val = value;
+  if (['username','password','secret'].includes(field)) {
+    val = await encryptField(value, env.AES_KEY);
+  }
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE products SET ${field}=?1 WHERE id=?2`).bind(val, id)
+  ]);
+}
+
+export async function addBuyer(env: Env, pid: string, uid: number): Promise<void> {
+  const product = await getProduct(env, pid);
+  if (!product) return;
+  const buyers = new Set(product.buyers);
+  buyers.add(uid);
+  product.buyers = Array.from(buyers);
+  await upsertProduct(env, pid, product);
+}
+
+export async function removeBuyer(env: Env, pid: string, uid: number): Promise<void> {
+  const product = await getProduct(env, pid);
+  if (!product) return;
+  product.buyers = product.buyers.filter((b) => b !== uid);
+  await upsertProduct(env, pid, product);
+}
+
+export async function clearBuyers(env: Env, pid: string): Promise<void> {
+  const product = await getProduct(env, pid);
+  if (!product) return;
+  product.buyers = [];
+  await upsertProduct(env, pid, product);
+}
+
+export async function listPending(env: Env): Promise<{user_id:number, product_id:string}[]> {
+  const res = await env.DB.prepare('SELECT user_id, product_id FROM pending').all();
+  return (res.results as any[]).map(r => ({ user_id: r.user_id, product_id: r.product_id }));
+}
+
+export async function addPending(env: Env, uid: number, pid: string): Promise<void> {
+  await env.DB.batch([
+    env.DB.prepare('INSERT OR REPLACE INTO pending (user_id, product_id) VALUES (?1, ?2)').bind(uid, pid)
+  ]);
+}
+
+export async function removePending(env: Env, uid: number, pid: string): Promise<void> {
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM pending WHERE user_id=?1 AND product_id=?2').bind(uid, pid)
+  ]);
+}
+
+export async function getPendingForUser(env: Env, uid: number): Promise<{user_id:number, product_id:string} | null> {
+  const row = await env.DB.prepare('SELECT user_id, product_id FROM pending WHERE user_id=?1').bind(uid).first<any>();
+  return row ? { user_id: row.user_id, product_id: row.product_id } : null;
+}
+
+export async function getLanguage(env: Env, uid: number): Promise<string | undefined> {
+  const row = await env.DB.prepare('SELECT lang FROM languages WHERE user_id=?1').bind(uid).first<any>();
+  return row?.lang as string | undefined;
+}
+
+export async function setLanguage(env: Env, uid: number, lang: string): Promise<void> {
+  await env.DB.batch([
+    env.DB.prepare('INSERT INTO languages (user_id, lang) VALUES (?1, ?2) ON CONFLICT(user_id) DO UPDATE SET lang=excluded.lang').bind(uid, lang)
+  ]);
+}
+
 /**
  * Load all bot data from the database.
  */
