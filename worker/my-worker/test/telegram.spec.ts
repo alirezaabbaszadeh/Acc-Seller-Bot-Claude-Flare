@@ -2,6 +2,7 @@ import { env, createExecutionContext, waitOnExecutionContext } from 'cloudflare:
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import worker from '../src';
 import { tr } from '../src/translations';
+import { loadData } from '../src/data';
 
 env.AES_KEY = 'MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=';
 env.ADMIN_ID = '1';
@@ -55,11 +56,7 @@ describe('POST /telegram', () => {
     expect(mockFetch.mock.calls[0][0]).toBe(TELEGRAM_URL);
     expect(body.text).toBe('Product added');
 
-    const dataReq = new Request('http://example.com/data');
-    const ctx2 = createExecutionContext();
-    const resp2 = await worker.fetch(dataReq, env, ctx2);
-    await waitOnExecutionContext(ctx2);
-    const data = await resp2.json();
+    const data = await loadData(env);
     expect(data.products.p1.price).toBe('10');
     expect(data.products.p1.username).toBe('user');
   });
@@ -88,11 +85,7 @@ describe('POST /telegram', () => {
     const body = JSON.parse((mockFetch.mock.calls[0][1] as RequestInit).body as string);
     expect(body.text).toBe(tr('welcome', 'en'));
 
-    const dataReq = new Request('http://example.com/data');
-    const ctx2 = createExecutionContext();
-    const resp2 = await worker.fetch(dataReq, env, ctx2);
-    await waitOnExecutionContext(ctx2);
-    const data = await resp2.json();
+    const data = await loadData(env);
     expect(data.products).toEqual({});
   });
 });

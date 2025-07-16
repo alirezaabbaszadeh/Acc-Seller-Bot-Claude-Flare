@@ -14,8 +14,6 @@
 import type { Env } from './env';
 import { commandHandlers, handleCallbackQuery, handlePhoto, handlePendingAddMessage, handlePendingEditMessage, type TelegramUpdate } from './telegram';
 import { authenticator } from 'otplib';
-import type { Data } from './crypto';
-import { loadData, saveData } from './data';
 
 
 
@@ -23,18 +21,6 @@ export default {
         async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
                 const url = new URL(request.url);
                 switch (url.pathname) {
-                        case '/data':
-                                if (request.method === 'GET') {
-                                        const data = await loadData(env);
-                                        return new Response(JSON.stringify(data), {
-                                                headers: { 'content-type': 'application/json' },
-                                        });
-                                } else if (request.method === 'POST') {
-                                        const payload: Data = await request.json();
-                                        await saveData(env, payload);
-                                        return new Response('OK');
-                                }
-                                return new Response('Method Not Allowed', { status: 405 });
                         case '/totp':
                                 const secret = url.searchParams.get('secret');
                                 if (!secret) {
