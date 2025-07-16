@@ -44,7 +44,7 @@
    npm install -g wrangler
    wrangler login
    ```
-2. ویرایش فایل `wrangler.toml` و جایگزین کردن شناسه‌ها با مقادیر حساب Cloudflare خود.
+2. ویرایش فایل `wrangler.toml` و جایگزین کردن شناسه‌ها با مقادیر حساب Cloudflare خود. خط `route` نمونه را با مسیر واقعی Worker جایگزین کنید یا در صورت نیاز آن را حذف کنید (مثال: `route = "https://example.com/*"`).
 3. ایجاد پایگاه داده D1:
    ```bash
    wrangler d1 create account-bot

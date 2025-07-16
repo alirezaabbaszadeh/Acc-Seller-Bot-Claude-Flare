@@ -3,7 +3,7 @@ account_id = "1234567890abcdef1234567890abcdef" # placeholder - use your real Cl
 main = "src/index.ts"
 compatibility_date = "2024-11-11"
 
-route = "https://example.com/*"
+route = "https://example.com/*" # remove or replace with your real Worker route before deploy
 
 [build]
 command = "npm run compile"
