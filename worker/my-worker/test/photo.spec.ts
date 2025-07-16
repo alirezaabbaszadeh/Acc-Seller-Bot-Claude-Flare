@@ -90,4 +90,81 @@ describe('photo upload flow', () => {
     expect(mockFetch).toHaveBeenCalledTimes(2);
     errorSpy.mockRestore();
   });
+
+  it('retries when sendPhoto fails', async () => {
+    let photoCalls = 0;
+    mockFetch.mockImplementation((input: any) => {
+      const url = typeof input === 'string' ? input : input.url;
+      if (url.includes('/sendPhoto')) {
+        photoCalls++;
+        if (photoCalls === 1) return new Response('err', { status: 500 });
+      }
+      return telegramFetch(url);
+    });
+    const putSpy = vi.spyOn(env.PROOFS, 'put');
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const update = { message: { chat: { id: 2 }, photo: [{ file_id: 'f3' }] } };
+    const req = new Request('http://example.com/telegram', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(update),
+    });
+    const ctx = createExecutionContext();
+    const res = await worker.fetch(req, env, ctx);
+    await waitOnExecutionContext(ctx);
+    expect(await res.text()).toBe('OK');
+
+    expect(putSpy).toHaveBeenCalledTimes(1);
+    expect(photoCalls).toBe(2);
+    expect(mockFetch).toHaveBeenCalledTimes(5);
+    errorSpy.mockRestore();
+  });
+
+  it('retries when sendMessage fails', async () => {
+    let msgCalls = 0;
+    mockFetch.mockImplementation((input: any) => {
+      const url = typeof input === 'string' ? input : input.url;
+      if (url.includes('/sendMessage')) {
+        msgCalls++;
+        if (msgCalls === 1) return new Response('err', { status: 500 });
+      }
+      return telegramFetch(url);
+    });
+    const putSpy = vi.spyOn(env.PROOFS, 'put');
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const update = { message: { chat: { id: 2 }, photo: [{ file_id: 'f4' }] } };
+    const req = new Request('http://example.com/telegram', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(update),
+    });
+    const ctx = createExecutionContext();
+    const res = await worker.fetch(req, env, ctx);
+    await waitOnExecutionContext(ctx);
+    expect(await res.text()).toBe('OK');
+
+    expect(putSpy).toHaveBeenCalledTimes(1);
+    expect(msgCalls).toBe(2);
+    expect(mockFetch).toHaveBeenCalledTimes(5);
+    errorSpy.mockRestore();
+  });
+
+  it('handles R2 put failure gracefully', async () => {
+    vi.spyOn(env.PROOFS, 'put').mockRejectedValue(new Error('fail'));
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const update = { message: { chat: { id: 2 }, photo: [{ file_id: 'f5' }] } };
+    const req = new Request('http://example.com/telegram', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(update),
+    });
+    const ctx = createExecutionContext();
+    const res = await worker.fetch(req, env, ctx);
+    await waitOnExecutionContext(ctx);
+    expect(await res.text()).toBe('OK');
+
+    // only getFile and file fetches
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    errorSpy.mockRestore();
+  });
 });

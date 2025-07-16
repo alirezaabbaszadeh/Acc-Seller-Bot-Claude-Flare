@@ -42,22 +42,50 @@ export interface TelegramUpdate {
 export type CommandHandler = (update: TelegramUpdate, env: Env) => Promise<void>;
 export type CallbackHandler = (update: TelegramUpdate, env: Env) => Promise<void>;
 
-export async function sendMessage(env: Env, chatId: number, text: string, replyMarkup?: unknown): Promise<Response> {
+export async function sendMessage(
+  env: Env,
+  chatId: number,
+  text: string,
+  replyMarkup?: unknown,
+): Promise<Response> {
   const url = `https://api.telegram.org/bot${env.BOT_TOKEN}/sendMessage`;
-  return fetch(url, {
+  const options: RequestInit = {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ chat_id: chatId, text, reply_markup: replyMarkup }),
-  });
+  };
+  let res = await fetch(url, options);
+  if (!res.ok) {
+    console.error('Failed to send message', res.status, res.statusText);
+    res = await fetch(url, options);
+    if (!res.ok) {
+      console.error('Retry sendMessage failed', res.status, res.statusText);
+    }
+  }
+  return res;
 }
 
-export async function sendPhoto(env: Env, chatId: number, fileId: string, caption: string): Promise<Response> {
+export async function sendPhoto(
+  env: Env,
+  chatId: number,
+  fileId: string,
+  caption: string,
+): Promise<Response> {
   const url = `https://api.telegram.org/bot${env.BOT_TOKEN}/sendPhoto`;
-  return fetch(url, {
+  const options: RequestInit = {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ chat_id: chatId, photo: fileId, caption }),
-  });
+  };
+  let res = await fetch(url, options);
+  if (!res.ok) {
+    console.error('Failed to send photo', res.status, res.statusText);
+    res = await fetch(url, options);
+    if (!res.ok) {
+      console.error('Retry sendPhoto failed', res.status, res.statusText);
+    }
+  }
+  return res;
 }
 
 // --- Inline keyboard builders ---
@@ -140,7 +168,16 @@ export async function handlePhoto(update: TelegramUpdate, env: Env): Promise<voi
     console.error('Failed to fetch file');
     return;
   }
-  await env.PROOFS.put(`${fileId}`, fileRes.body);
+  try {
+    const putRes = await env.PROOFS.put(`${fileId}`, fileRes.body);
+    if (!putRes) {
+      console.error('Failed to store proof in R2');
+      return;
+    }
+  } catch (err) {
+    console.error('Failed to store proof in R2', err);
+    return;
+  }
   await sendPhoto(
     env,
     Number(env.ADMIN_ID),
