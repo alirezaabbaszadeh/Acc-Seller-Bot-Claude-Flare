@@ -22,6 +22,7 @@ import {
 export async function menuCallback(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
+  const senderId = update.callback_query?.from.id ?? chatId;
   const lang = await userLang(env, chatId);
   const action = update.callback_query?.data.split(':')[1];
   if (action === 'language') {
@@ -39,7 +40,7 @@ export async function menuCallback(update: TelegramUpdate, env: Env): Promise<vo
         env,
         chatId,
         tr('welcome', lang),
-        buildMainMenu(lang, isAdmin(env, chatId)),
+        buildMainMenu(lang, isAdmin(env, senderId)),
       );
       break;
     case 'products': {
@@ -92,8 +93,8 @@ export async function menuCallback(update: TelegramUpdate, env: Env): Promise<vo
       await sendMessage(env, chatId, text, buildBackMenu(lang));
       break;
     }
-    case 'admin':
-      if (!isAdmin(env, chatId)) {
+      case 'admin':
+        if (!isAdmin(env, senderId)) {
         await sendMessage(env, chatId, tr('unauthorized', lang), buildBackMenu(lang));
         return;
       }
@@ -146,6 +147,7 @@ export async function codeCallback(update: TelegramUpdate, env: Env): Promise<vo
 export async function languageMenuCallback(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
+  const senderId = update.callback_query?.from.id ?? chatId;
   const dataStr = update.callback_query?.data || '';
   const parts = dataStr.split(':');
   const lang = await userLang(env, chatId);
@@ -162,15 +164,16 @@ export async function languageMenuCallback(update: TelegramUpdate, env: Env): Pr
     env,
     chatId,
     tr('language_set', langCode),
-    buildMainMenu(langCode, isAdmin(env, chatId)),
+    buildMainMenu(langCode, isAdmin(env, senderId)),
   );
 }
 
 export async function adminMenuCallback(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
+  const senderId = update.callback_query?.from.id ?? chatId;
   const lang = await userLang(env, chatId);
-  if (!isAdmin(env, chatId)) {
+  if (!isAdmin(env, senderId)) {
     await sendMessage(env, chatId, tr('unauthorized', lang));
     return;
   }
@@ -271,8 +274,9 @@ export async function adminMenuCallback(update: TelegramUpdate, env: Env): Promi
 export async function adminCallback(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
+  const senderId = update.callback_query?.from.id ?? chatId;
   const lang = await userLang(env, chatId);
-  if (!isAdmin(env, chatId)) {
+  if (!isAdmin(env, senderId)) {
     await sendMessage(env, chatId, tr('unauthorized', lang));
     return;
   }
@@ -329,8 +333,9 @@ export async function adminCallback(update: TelegramUpdate, env: Env): Promise<v
 export async function editprodCallback(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
+  const senderId = update.callback_query?.from.id ?? chatId;
   const lang = await userLang(env, chatId);
-  if (!isAdmin(env, chatId)) {
+  if (!isAdmin(env, senderId)) {
     await sendMessage(env, chatId, tr('unauthorized', lang));
     return;
   }
@@ -358,8 +363,9 @@ export async function editfieldCallback(update: TelegramUpdate, env: Env): Promi
 export async function buyerlistCallback(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
+  const senderId = update.callback_query?.from.id ?? chatId;
   const lang = await userLang(env, chatId);
-  if (!isAdmin(env, chatId)) {
+  if (!isAdmin(env, senderId)) {
     await sendMessage(env, chatId, tr('unauthorized', lang));
     return;
   }
@@ -384,8 +390,9 @@ export async function buyerlistCallback(update: TelegramUpdate, env: Env): Promi
 export async function clearbuyersCallback(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
+  const senderId = update.callback_query?.from.id ?? chatId;
   const lang = await userLang(env, chatId);
-  if (!isAdmin(env, chatId)) {
+  if (!isAdmin(env, senderId)) {
     await sendMessage(env, chatId, tr('unauthorized', lang));
     return;
   }
@@ -404,8 +411,9 @@ export async function clearbuyersCallback(update: TelegramUpdate, env: Env): Pro
 export async function resendCallback(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
+  const senderId = update.callback_query?.from.id ?? chatId;
   const lang = await userLang(env, chatId);
-  if (!isAdmin(env, chatId)) {
+  if (!isAdmin(env, senderId)) {
     await sendMessage(env, chatId, tr('unauthorized', lang));
     return;
   }
@@ -448,8 +456,9 @@ export async function resendCallback(update: TelegramUpdate, env: Env): Promise<
 export async function deleteprodCallback(update: TelegramUpdate, env: Env): Promise<void> {
   const chatId = update.callback_query?.message?.chat.id;
   if (!chatId) return;
+  const senderId = update.callback_query?.from.id ?? chatId;
   const lang = await userLang(env, chatId);
-  if (!isAdmin(env, chatId)) {
+  if (!isAdmin(env, senderId)) {
     await sendMessage(env, chatId, tr('unauthorized', lang));
     return;
   }

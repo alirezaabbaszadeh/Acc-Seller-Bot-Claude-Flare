@@ -77,7 +77,7 @@ describe('interactive edit buttons flow', () => {
     mockFetch.mockClear();
 
     // send new value
-    update = { message: { chat: { id: 1 }, text: '2' } };
+    update = { message: { chat: { id: 1 }, from: { id: 1 }, text: '2' } };
     req = new Request('http://example.com/telegram', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(update) });
     ctx = createExecutionContext();
     await worker.fetch(req, env, ctx);

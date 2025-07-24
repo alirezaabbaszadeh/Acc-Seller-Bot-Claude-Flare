@@ -37,6 +37,7 @@ describe('POST /telegram', () => {
     const update = {
       message: {
         chat: { id: 1 },
+        from: { id: 1 },
         text: '/addproduct p1 10 user pass sec TestProd',
       },
     };
