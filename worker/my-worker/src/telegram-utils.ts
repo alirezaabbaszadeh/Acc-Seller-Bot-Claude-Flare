@@ -13,6 +13,18 @@ export function isAdmin(env: Env, userId: number): boolean {
   return String(userId) === env.ADMIN_ID;
 }
 
+export function getSenderId(update: TelegramUpdate): number | undefined {
+  return (
+    update.message?.from?.id ??
+    update.callback_query?.from.id ??
+    update.message?.chat.id
+  );
+}
+
+export function getChatId(update: TelegramUpdate): number | undefined {
+  return update.message?.chat.id ?? update.callback_query?.message?.chat.id;
+}
+
 export interface InlineKeyboardButton {
   text: string;
   callback_data: string;
@@ -24,6 +36,7 @@ export interface InlineKeyboardMarkup {
 
 export interface TelegramMessage {
   chat: { id: number };
+  from?: { id: number };
   text?: string;
   photo?: { file_id: string }[];
 }

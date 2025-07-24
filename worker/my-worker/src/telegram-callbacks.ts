@@ -12,6 +12,8 @@ import {
   buildAdminMenu,
   buildProductsMenu,
   isAdmin,
+  getSenderId,
+  getChatId,
   InlineKeyboardButton,
   CallbackHandler,
   TelegramUpdate
@@ -20,8 +22,9 @@ import {
 // --- Callback handlers ---
 
 export async function menuCallback(update: TelegramUpdate, env: Env): Promise<void> {
-  const chatId = update.callback_query?.message?.chat.id;
+  const chatId = getChatId(update);
   if (!chatId) return;
+  const userId = getSenderId(update);
   const lang = await userLang(env, chatId);
   const action = update.callback_query?.data.split(':')[1];
   if (action === 'language') {
@@ -39,7 +42,7 @@ export async function menuCallback(update: TelegramUpdate, env: Env): Promise<vo
         env,
         chatId,
         tr('welcome', lang),
-        buildMainMenu(lang, isAdmin(env, chatId)),
+        buildMainMenu(lang, userId !== undefined && isAdmin(env, userId)),
       );
       break;
     case 'products': {
@@ -93,7 +96,7 @@ export async function menuCallback(update: TelegramUpdate, env: Env): Promise<vo
       break;
     }
     case 'admin':
-      if (!isAdmin(env, chatId)) {
+      if (userId === undefined || !isAdmin(env, userId)) {
         await sendMessage(env, chatId, tr('unauthorized', lang), buildBackMenu(lang));
         return;
       }
@@ -144,8 +147,9 @@ export async function codeCallback(update: TelegramUpdate, env: Env): Promise<vo
 }
 
 export async function languageMenuCallback(update: TelegramUpdate, env: Env): Promise<void> {
-  const chatId = update.callback_query?.message?.chat.id;
+  const chatId = getChatId(update);
   if (!chatId) return;
+  const userId = getSenderId(update);
   const dataStr = update.callback_query?.data || '';
   const parts = dataStr.split(':');
   const lang = await userLang(env, chatId);
@@ -162,15 +166,16 @@ export async function languageMenuCallback(update: TelegramUpdate, env: Env): Pr
     env,
     chatId,
     tr('language_set', langCode),
-    buildMainMenu(langCode, isAdmin(env, chatId)),
+    buildMainMenu(langCode, userId !== undefined && isAdmin(env, userId)),
   );
 }
 
 export async function adminMenuCallback(update: TelegramUpdate, env: Env): Promise<void> {
-  const chatId = update.callback_query?.message?.chat.id;
+  const chatId = getChatId(update);
   if (!chatId) return;
+  const userId = getSenderId(update);
   const lang = await userLang(env, chatId);
-  if (!isAdmin(env, chatId)) {
+  if (userId === undefined || !isAdmin(env, userId)) {
     await sendMessage(env, chatId, tr('unauthorized', lang));
     return;
   }
@@ -269,10 +274,11 @@ export async function adminMenuCallback(update: TelegramUpdate, env: Env): Promi
 }
 
 export async function adminCallback(update: TelegramUpdate, env: Env): Promise<void> {
-  const chatId = update.callback_query?.message?.chat.id;
+  const chatId = getChatId(update);
   if (!chatId) return;
+  const userId = getSenderId(update);
   const lang = await userLang(env, chatId);
-  if (!isAdmin(env, chatId)) {
+  if (userId === undefined || !isAdmin(env, userId)) {
     await sendMessage(env, chatId, tr('unauthorized', lang));
     return;
   }
@@ -327,10 +333,11 @@ export async function adminCallback(update: TelegramUpdate, env: Env): Promise<v
 }
 
 export async function editprodCallback(update: TelegramUpdate, env: Env): Promise<void> {
-  const chatId = update.callback_query?.message?.chat.id;
+  const chatId = getChatId(update);
   if (!chatId) return;
+  const userId = getSenderId(update);
   const lang = await userLang(env, chatId);
-  if (!isAdmin(env, chatId)) {
+  if (userId === undefined || !isAdmin(env, userId)) {
     await sendMessage(env, chatId, tr('unauthorized', lang));
     return;
   }
@@ -346,9 +353,11 @@ export async function editprodCallback(update: TelegramUpdate, env: Env): Promis
 }
 
 export async function editfieldCallback(update: TelegramUpdate, env: Env): Promise<void> {
-  const chatId = update.callback_query?.message?.chat.id;
+  const chatId = getChatId(update);
   if (!chatId) return;
+  const userId = getSenderId(update);
   const lang = await userLang(env, chatId);
+  if (userId === undefined) return;
   const parts = update.callback_query?.data.split(':') || [];
   const pid = parts[1];
   const field = parts[2];
@@ -356,10 +365,11 @@ export async function editfieldCallback(update: TelegramUpdate, env: Env): Promi
 }
 
 export async function buyerlistCallback(update: TelegramUpdate, env: Env): Promise<void> {
-  const chatId = update.callback_query?.message?.chat.id;
+  const chatId = getChatId(update);
   if (!chatId) return;
+  const userId = getSenderId(update);
   const lang = await userLang(env, chatId);
-  if (!isAdmin(env, chatId)) {
+  if (userId === undefined || !isAdmin(env, userId)) {
     await sendMessage(env, chatId, tr('unauthorized', lang));
     return;
   }
@@ -382,10 +392,11 @@ export async function buyerlistCallback(update: TelegramUpdate, env: Env): Promi
 }
 
 export async function clearbuyersCallback(update: TelegramUpdate, env: Env): Promise<void> {
-  const chatId = update.callback_query?.message?.chat.id;
+  const chatId = getChatId(update);
   if (!chatId) return;
+  const userId = getSenderId(update);
   const lang = await userLang(env, chatId);
-  if (!isAdmin(env, chatId)) {
+  if (userId === undefined || !isAdmin(env, userId)) {
     await sendMessage(env, chatId, tr('unauthorized', lang));
     return;
   }
@@ -402,10 +413,11 @@ export async function clearbuyersCallback(update: TelegramUpdate, env: Env): Pro
 }
 
 export async function resendCallback(update: TelegramUpdate, env: Env): Promise<void> {
-  const chatId = update.callback_query?.message?.chat.id;
+  const chatId = getChatId(update);
   if (!chatId) return;
+  const userId = getSenderId(update);
   const lang = await userLang(env, chatId);
-  if (!isAdmin(env, chatId)) {
+  if (userId === undefined || !isAdmin(env, userId)) {
     await sendMessage(env, chatId, tr('unauthorized', lang));
     return;
   }
@@ -446,10 +458,11 @@ export async function resendCallback(update: TelegramUpdate, env: Env): Promise<
 }
 
 export async function deleteprodCallback(update: TelegramUpdate, env: Env): Promise<void> {
-  const chatId = update.callback_query?.message?.chat.id;
+  const chatId = getChatId(update);
   if (!chatId) return;
+  const userId = getSenderId(update);
   const lang = await userLang(env, chatId);
-  if (!isAdmin(env, chatId)) {
+  if (userId === undefined || !isAdmin(env, userId)) {
     await sendMessage(env, chatId, tr('unauthorized', lang));
     return;
   }
