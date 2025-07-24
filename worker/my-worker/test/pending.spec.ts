@@ -29,7 +29,7 @@ describe('pending command', () => {
     await env.DB.exec(`INSERT INTO products (id, price, username, password, secret, name, buyers) VALUES ('p1','10','${encUser}','${encPass}','${encSecret}',NULL,'[]')`);
     await env.DB.exec("INSERT INTO pending (user_id, product_id) VALUES (2, 'p1')");
 
-    const update = { message: { chat: { id: 1 }, text: '/pending' } };
+    const update = { message: { chat: { id: 1 }, from: { id: 1 }, text: '/pending' } };
     const req = new Request('http://example.com/telegram', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },

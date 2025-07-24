@@ -34,7 +34,7 @@ describe('interactive addproduct flow', () => {
 
   it('stores product after multi-step conversation', async () => {
     // start conversation
-    let update: any = { message: { chat: { id: 1 }, text: '/addproduct' } };
+    let update: any = { message: { chat: { id: 1 }, from: { id: 1 }, text: '/addproduct' } };
     let req = new Request('http://example.com/telegram', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -50,7 +50,7 @@ describe('interactive addproduct flow', () => {
     mockFetch.mockClear();
 
     // send id
-    update = { message: { chat: { id: 1 }, text: 'p1' } };
+    update = { message: { chat: { id: 1 }, from: { id: 1 }, text: 'p1' } };
     req = new Request('http://example.com/telegram', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -66,7 +66,7 @@ describe('interactive addproduct flow', () => {
     mockFetch.mockClear();
 
     // price
-    update = { message: { chat: { id: 1 }, text: '10' } };
+    update = { message: { chat: { id: 1 }, from: { id: 1 }, text: '10' } };
     req = new Request('http://example.com/telegram', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(update) });
     ctx = createExecutionContext();
     await worker.fetch(req, env, ctx);
@@ -76,7 +76,7 @@ describe('interactive addproduct flow', () => {
     mockFetch.mockClear();
 
     // username
-    update = { message: { chat: { id: 1 }, text: 'user' } };
+    update = { message: { chat: { id: 1 }, from: { id: 1 }, text: 'user' } };
     req = new Request('http://example.com/telegram', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(update) });
     ctx = createExecutionContext();
     await worker.fetch(req, env, ctx);
@@ -86,7 +86,7 @@ describe('interactive addproduct flow', () => {
     mockFetch.mockClear();
 
     // password
-    update = { message: { chat: { id: 1 }, text: 'pass' } };
+    update = { message: { chat: { id: 1 }, from: { id: 1 }, text: 'pass' } };
     req = new Request('http://example.com/telegram', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(update) });
     ctx = createExecutionContext();
     await worker.fetch(req, env, ctx);
@@ -96,7 +96,7 @@ describe('interactive addproduct flow', () => {
     mockFetch.mockClear();
 
     // secret
-    update = { message: { chat: { id: 1 }, text: 'sec' } };
+    update = { message: { chat: { id: 1 }, from: { id: 1 }, text: 'sec' } };
     req = new Request('http://example.com/telegram', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(update) });
     ctx = createExecutionContext();
     await worker.fetch(req, env, ctx);
@@ -106,7 +106,7 @@ describe('interactive addproduct flow', () => {
     mockFetch.mockClear();
 
     // name
-    update = { message: { chat: { id: 1 }, text: 'TestProd' } };
+    update = { message: { chat: { id: 1 }, from: { id: 1 }, text: 'TestProd' } };
     req = new Request('http://example.com/telegram', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(update) });
     ctx = createExecutionContext();
     await worker.fetch(req, env, ctx);
